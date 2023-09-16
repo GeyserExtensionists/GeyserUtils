@@ -6,14 +6,13 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 
-import java.io.Serializable;
 import java.util.List;
 
 @AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
-public class NpcDialogueFormDataPacket extends Packet {
+public class NpcDialogueFormDataCustomPayloadPacket extends CustomPayloadPacket {
 
     String formId;
     String title;

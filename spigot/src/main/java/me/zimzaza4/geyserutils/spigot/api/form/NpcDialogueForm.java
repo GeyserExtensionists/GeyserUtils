@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
-import me.zimzaza4.geyserutils.common.packet.NpcDialogueFormDataPacket;
+import me.zimzaza4.geyserutils.common.packet.NpcDialogueFormDataCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 import org.bukkit.Bukkit;
@@ -41,13 +41,13 @@ public class NpcDialogueForm {
 
     public void send(FloodgatePlayer floodgatePlayer) {
         UUID formId = UUID.randomUUID();
-        NpcDialogueFormDataPacket data = new NpcDialogueFormDataPacket(formId.toString(), title, dialogue, skinData, bindEntity.getEntityId(), buttons, "OPEN",  hasNextForm);
+        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(formId.toString(), title, dialogue, skinData, bindEntity.getEntityId(), buttons, "OPEN",  hasNextForm);
         Player p = Bukkit.getPlayer(floodgatePlayer.getCorrectUniqueId());
         if (p!= null) {
 
             FORMS.put(formId.toString(), this);
 
-            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, CustomPayloadPacketUtils.encodePacket(data));
+            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
             new BukkitRunnable() {
 
                  @Override
@@ -65,10 +65,10 @@ public class NpcDialogueForm {
     }
 
     public static void closeForm(FloodgatePlayer floodgatePlayer) {
-        NpcDialogueFormDataPacket data = new NpcDialogueFormDataPacket(null, null, null, null, -1, null, "CLOSE", false);
+        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(null, null, null, null, -1, null, "CLOSE", false);
         Player p = Bukkit.getPlayer(floodgatePlayer.getCorrectUniqueId());
         if (p != null) {
-            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, CustomPayloadPacketUtils.encodePacket(data));
+            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
         }
     }
 }

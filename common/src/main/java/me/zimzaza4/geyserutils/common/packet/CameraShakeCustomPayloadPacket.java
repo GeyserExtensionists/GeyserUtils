@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class CameraShakePacket extends Packet {
+public class CameraShakeCustomPayloadPacket extends CustomPayloadPacket {
 
     float intensity;
     float duration;
