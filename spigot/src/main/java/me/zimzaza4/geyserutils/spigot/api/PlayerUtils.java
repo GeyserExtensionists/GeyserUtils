@@ -24,6 +24,7 @@ public class PlayerUtils {
         for (Entity entity : entityList) {
             idList.add(entity.getEntityId());
         }
+
         playEntityAnimation(player, animation, idList);
     }
 

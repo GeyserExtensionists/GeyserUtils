@@ -42,18 +42,13 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onSessionJoin(SessionJoinEvent event) {
         if (event.connection() instanceof GeyserSession session) {
-            System.out.println("Add");
             session.getDownstream().getSession().addListener(new SessionAdapter() {
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
                     if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                        System.out.println(payloadPacket.getChannel());
-                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
-                            System.out.println("Received packet");
+                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {;
                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
-                            System.out.println(1);
                             if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
-                                System.out.println(2);
                                 event.connection().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
                             } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
 

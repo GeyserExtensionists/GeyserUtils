@@ -1,41 +1,41 @@
 package me.zimzaza4.geyserutils.common.manager;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import me.zimzaza4.geyserutils.common.packet.CameraShakeCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.NpcDialogueFormDataCustomPayloadPacket;
 
-import java.io.*;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class PacketManager {
 
-    private final Kryo kryo = new Kryo();
+    private final ObjectMapper objectMapper;
 
     public PacketManager() {
-        init();
+        objectMapper = new ObjectMapper();
+        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
     }
 
-    public void init() {
-        kryo.setRegistrationRequired(false);
-    }
-    public void registerPacket(Class<? extends CustomPayloadPacket> clazz) {
-        kryo.register(clazz);
-    }
 
     public byte[] encodePacket(CustomPayloadPacket packet) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try (Output output = new Output()) {
-            kryo.writeObject(output, packet);
-            return byteArrayOutputStream.toByteArray();
+
+        try {
+            return objectMapper.writeValueAsBytes(packet);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
 
     }
 
     public CustomPayloadPacket decodePacket(byte[] bytes) {
-        try (Input input = new Input(bytes)) {
-            return kryo.readObject(input, CustomPayloadPacket.class);
+        try {
+            return objectMapper.readValue(bytes, CustomPayloadPacket.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

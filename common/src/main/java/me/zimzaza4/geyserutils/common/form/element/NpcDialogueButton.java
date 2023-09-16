@@ -11,7 +11,7 @@ import java.util.List;
 @Setter
 @Getter
 @Accessors( fluent = true )
-public class NpcDialogueButton implements Serializable {
+public class NpcDialogueButton {
     private String text;
     private List<String> commands;
     private ButtonMode mode;
