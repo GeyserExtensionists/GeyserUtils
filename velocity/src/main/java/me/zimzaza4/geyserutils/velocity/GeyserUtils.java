@@ -28,6 +28,7 @@ public class GeyserUtils {
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
+
         server.getChannelRegistrar().register(MinecraftChannelIdentifier.from(GeyserUtilsChannels.MAIN));
     }
 }

@@ -6,18 +6,29 @@ import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
 import lombok.Getter;
+import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
+import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.*;
-import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
+import me.zimzaza4.geyserutils.geyser.camera.CameraPresetDefinition;
+import me.zimzaza4.geyserutils.geyser.camera.Converter;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
+import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.packet.AnimateEntityPacket;
+import org.cloudburstmc.protocol.bedrock.packet.CameraInstructionPacket;
+import org.cloudburstmc.protocol.bedrock.packet.CameraPresetsPacket;
 import org.cloudburstmc.protocol.bedrock.packet.NpcRequestPacket;
+import org.cloudburstmc.protocol.common.DefinitionRegistry;
+import org.cloudburstmc.protocol.common.NamedDefinition;
 import org.geysermc.event.subscribe.Subscribe;
+import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
@@ -28,20 +39,36 @@ import org.geysermc.geyser.session.GeyserSession;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class GeyserUtils implements Extension {
 
+
+    NbtMap CLEAR_INSTRUCTION_TAG = NbtMap.builder().putByte("clear", Integer.valueOf(1).byteValue()).build();
     @Getter
     public static PacketManager packetManager;
 
     @Subscribe
     public void onLoad(GeyserPostInitializeEvent event) {
         packetManager = new PacketManager();
+        CameraPreset.load();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
+
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+
+            for (GeyserSession session : GeyserImpl.getInstance().onlineConnections()) {
+                sendCameraPresets(session);
+            }
+
+        }, 10, 10, TimeUnit.SECONDS);
+
+
     }
     @Subscribe
     public void onSessionJoin(SessionJoinEvent event) {
         if (event.connection() instanceof GeyserSession session) {
+            sendCameraPresets(session);
             session.getDownstream().getSession().addListener(new SessionAdapter() {
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
@@ -111,11 +138,53 @@ public class GeyserUtils implements Extension {
                                     }
                                 }
                                 session.sendUpstreamPacket(animateEntityPacket);
+                            } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
+                                CameraInstructionPacket bedrockPacket = new CameraInstructionPacket();
+                                if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
+                                    bedrockPacket.setSetInstruction(Converter.serializeSetInstruction(instruction));
+                                } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
+                                    bedrockPacket.setFadeInstruction(Converter.serializeFadeInstruction(instruction));
+                                } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction){
+                                    bedrockPacket.setClear(true);
+                                }
+                                session.sendUpstreamPacket(bedrockPacket);
                             }
                         }
                     }
                 }
             });
+
         }
+
+
+    }
+
+    public static void sendCameraPresets(GeyserSession session) {
+        if (session.getUpstream().getCodecHelper().getCameraPresetDefinitions() == null) {
+
+            session.getUpstream().getCodecHelper().setCameraPresetDefinitions(new DefinitionRegistry<>() {
+                @Override
+                public NamedDefinition getDefinition(int i) {
+                    for (CameraPreset preset : CameraPreset.getPresets().values()) {
+                        if (preset.getId() == i) {
+                            return new CameraPresetDefinition(preset.getIdentifier(), i);
+                        }
+                    }
+
+                    return null;
+                }
+
+                @Override
+                public boolean isRegistered(NamedDefinition namedDefinition) {
+                    return CameraPreset.getPreset(namedDefinition.getIdentifier()) != null;
+                }
+            });
+        }
+        CameraPresetsPacket pk = new CameraPresetsPacket();
+        for (CameraPreset preset : CameraPreset.getPresets().values()) {
+            pk.getPresets().add(Converter.serializeCameraPreset(preset));
+        }
+
+        session.sendUpstreamPacket(pk);
     }
 }

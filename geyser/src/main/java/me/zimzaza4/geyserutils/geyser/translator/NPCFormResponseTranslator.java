@@ -29,7 +29,6 @@ public class NPCFormResponseTranslator extends PacketTranslator<NpcRequestPacket
             return;
         }
 
-        System.out.println(packet);
 
         Button button = form.dialogueButtons().get(packet.getActionType());
 

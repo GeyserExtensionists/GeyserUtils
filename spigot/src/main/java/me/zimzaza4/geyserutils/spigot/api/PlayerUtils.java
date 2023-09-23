@@ -1,8 +1,10 @@
 package me.zimzaza4.geyserutils.spigot.api;
 
 import me.zimzaza4.geyserutils.common.animation.Animation;
+import me.zimzaza4.geyserutils.common.camera.instruction.Instruction;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.packet.AnimateEntityCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.CameraInstructionCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.packet.CameraShakeCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
@@ -32,6 +34,13 @@ public class PlayerUtils {
         AnimateEntityCustomPayloadPacket packet = new AnimateEntityCustomPayloadPacket();
         packet.parseFromAnimation(animation);
         packet.setEntityJavaIds(entityList);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
+
+    public static void sendCameraInstruction(Player player, Instruction instruction) {
+        CameraInstructionCustomPayloadPacket packet = new CameraInstructionCustomPayloadPacket();
+        packet.setInstruction(instruction);
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }
