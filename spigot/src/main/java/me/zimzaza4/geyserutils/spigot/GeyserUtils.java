@@ -33,13 +33,22 @@ public final class GeyserUtils extends JavaPlugin {
                     NpcFormResponseCustomPayloadPacket response = (NpcFormResponseCustomPayloadPacket) packet;
                     if (NpcDialogueForm.FORMS.containsKey(response.getFormId())) {
 
-                        BiConsumer<String, Integer> handler = NpcDialogueForm.FORMS.get(response.getFormId()).handler();
-                        if (handler != null) {
-                            handler.accept(response.getFormId(), response.getButtonId());
-                        }
-                        NpcDialogueForm.FORMS.remove(response.getFormId());
-                    }
+                        NpcDialogueForm form = NpcDialogueForm.FORMS.get(response.getFormId());
 
+                        if (form.handler() != null) {
+                            if (response.getButtonId() != -1) {
+                                form.handler().accept(response.getFormId(), response.getButtonId());
+                            }
+                        }
+                        if (response.getButtonId() == -1) {
+                            if (form.closeHandler() != null) {
+                                form.closeHandler().accept(response.getFormId());
+                            }
+                            NpcDialogueForm.FORMS.remove(response.getFormId());
+                        }
+
+
+                    }
                 }
             }
         });

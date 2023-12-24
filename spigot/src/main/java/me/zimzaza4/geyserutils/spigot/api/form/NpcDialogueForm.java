@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,6 +39,7 @@ public class NpcDialogueForm {
     boolean hasNextForm = false;
     List<NpcDialogueButton> buttons;
     BiConsumer<String, Integer> handler;
+    Consumer<String> closeHandler;
 
     public void send(FloodgatePlayer floodgatePlayer) {
         UUID formId = UUID.randomUUID();

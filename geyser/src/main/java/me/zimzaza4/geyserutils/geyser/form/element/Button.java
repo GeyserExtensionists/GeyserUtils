@@ -16,8 +16,7 @@ public class Button {
     List<String> commands;
     NpcDialogueButton.ButtonMode mode;
     Runnable click;
-
-
+    boolean hasNextForm;
 
     public JsonObject toJsonObject() {
         JsonObject button = new JsonObject();

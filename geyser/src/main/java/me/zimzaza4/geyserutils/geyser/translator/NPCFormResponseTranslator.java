@@ -15,19 +15,22 @@ public class NPCFormResponseTranslator extends PacketTranslator<NpcRequestPacket
     @Override
     public void translate(GeyserSession geyserSession, NpcRequestPacket packet) {
 
+        // System.out.println(packet);
         NpcDialogueForm form = NpcDialogueForms.getOpenNpcDialogueForms(geyserSession);
 
         if (form == null) {
             return;
         }
 
-        if (form.dialogueButtons().isEmpty()) {
-            if (packet.getRequestType().equals(NpcRequestType.EXECUTE_CLOSING_COMMANDS)) {
-                NpcDialogueForms.removeNpcDialogueForm(geyserSession, form);
+        if (packet.getRequestType().equals(NpcRequestType.EXECUTE_CLOSING_COMMANDS)) {
+            if (packet.getSceneName().equals(form.sceneName())) {
+                // System.out.println("CLOSE FORM");
+                form.close(geyserSession);
+                return;
             }
-
-            return;
         }
+
+
 
 
         Button button = form.dialogueButtons().get(packet.getActionType());
@@ -36,14 +39,12 @@ public class NPCFormResponseTranslator extends PacketTranslator<NpcRequestPacket
             return;
         }
 
-
-        if ((button.mode().equals(NpcDialogueButton.ButtonMode.ON_ENTER) && packet.getRequestType().equals(NpcRequestType.EXECUTE_OPENING_COMMANDS)) ||
-                (button.mode().equals(NpcDialogueButton.ButtonMode.BUTTON_MODE) && packet.getRequestType().equals(NpcRequestType.EXECUTE_COMMAND_ACTION)) ||
-                (button.mode().equals(NpcDialogueButton.ButtonMode.ON_EXIT) && packet.getRequestType().equals(NpcRequestType.EXECUTE_CLOSING_COMMANDS))) {
+        if (button.mode().equals(NpcDialogueButton.ButtonMode.BUTTON_MODE) && packet.getRequestType().equals(NpcRequestType.EXECUTE_COMMAND_ACTION)) {
             button.click().run();
-            if (!form.hasNextForm()) {
+            if (!button.hasNextForm()) {
                 form.close(geyserSession);
             }
         }
+
     }
 }

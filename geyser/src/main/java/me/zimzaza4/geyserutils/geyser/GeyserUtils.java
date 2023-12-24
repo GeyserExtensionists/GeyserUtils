@@ -1,7 +1,7 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.ClientboundCustomPayloadPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundCustomPayloadPacket;
+import com.github.steveice10.mc.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
+import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
@@ -112,8 +112,7 @@ public class GeyserUtils implements Extension {
                                             if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
                                                 session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
                                             }
-                                        }
-                                        ));
+                                        }, button.hasNextForm()));
                                         i++;
                                     }
                                 }
