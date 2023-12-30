@@ -3,7 +3,7 @@ package me.zimzaza4.geyserutils.common.camera.instruction;
 import lombok.*;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.data.Ease;
-import me.zimzaza4.geyserutils.common.camera.data.Pos;
+import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.common.camera.data.Rot;
 import org.jetbrains.annotations.Nullable;
 

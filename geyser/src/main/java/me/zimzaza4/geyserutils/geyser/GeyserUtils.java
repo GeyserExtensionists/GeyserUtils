@@ -14,17 +14,15 @@ import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.*;
+import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
 import me.zimzaza4.geyserutils.geyser.camera.CameraPresetDefinition;
-import me.zimzaza4.geyserutils.geyser.camera.Converter;
+import me.zimzaza4.geyserutils.geyser.util.Converter;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import org.cloudburstmc.nbt.NbtMap;
-import org.cloudburstmc.protocol.bedrock.packet.AnimateEntityPacket;
-import org.cloudburstmc.protocol.bedrock.packet.CameraInstructionPacket;
-import org.cloudburstmc.protocol.bedrock.packet.CameraPresetsPacket;
-import org.cloudburstmc.protocol.bedrock.packet.NpcRequestPacket;
+import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.cloudburstmc.protocol.common.DefinitionRegistry;
 import org.cloudburstmc.protocol.common.NamedDefinition;
 import org.geysermc.event.subscribe.Subscribe;
@@ -36,9 +34,11 @@ import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
+import org.geysermc.geyser.util.DimensionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -147,6 +147,13 @@ public class GeyserUtils implements Extension {
                                     bedrockPacket.setClear(true);
                                 }
                                 session.sendUpstreamPacket(bedrockPacket);
+                            } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
+                                SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
+                                spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session.getDimension()));
+                                spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
+                                spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
+                                spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
+                                session.sendUpstreamPacket(spawnParticleEffectPacket);
                             }
                         }
                     }

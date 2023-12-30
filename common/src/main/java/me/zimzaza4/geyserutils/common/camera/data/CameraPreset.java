@@ -2,6 +2,7 @@ package me.zimzaza4.geyserutils.common.camera.data;
 
 import lombok.Builder;
 import lombok.Getter;
+import me.zimzaza4.geyserutils.common.util.Pos;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;

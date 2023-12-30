@@ -6,8 +6,11 @@ import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.packet.AnimateEntityCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.packet.CameraInstructionCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.packet.CameraShakeCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
+import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
+import me.zimzaza4.geyserutils.common.particle.CustomParticle;
+import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -41,6 +44,14 @@ public class PlayerUtils {
     public static void sendCameraInstruction(Player player, Instruction instruction) {
         CameraInstructionCustomPayloadPacket packet = new CameraInstructionCustomPayloadPacket();
         packet.setInstruction(instruction);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
+
+    public static void sendCustomParticle(Player player, Location location, CustomParticle particle) {
+        CustomParticleEffectPayloadPacket packet = new CustomParticleEffectPayloadPacket();
+        packet.setParticle(particle);
+        packet.setPos(new Pos((float) location.getX(), (float) location.getY(), (float) location.getZ()));
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }

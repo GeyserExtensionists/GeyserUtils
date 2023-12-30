@@ -1,8 +1,10 @@
-package me.zimzaza4.geyserutils.geyser.camera;
+package me.zimzaza4.geyserutils.geyser.util;
 
 import me.zimzaza4.geyserutils.common.camera.data.*;
 import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
 import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
+import me.zimzaza4.geyserutils.common.util.Pos;
+import me.zimzaza4.geyserutils.geyser.camera.CameraPresetDefinition;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraAudioListener;

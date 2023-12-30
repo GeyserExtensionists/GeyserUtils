@@ -1,4 +1,4 @@
-package me.zimzaza4.geyserutils.common.camera.data;
+package me.zimzaza4.geyserutils.common.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
