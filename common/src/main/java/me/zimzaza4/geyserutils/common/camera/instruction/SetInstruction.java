@@ -21,5 +21,7 @@ public class SetInstruction implements Instruction {
     @Nullable
     private Pos facing;
     private CameraPreset preset;
+    @Nullable
+    private FadeInstruction fade;
     protected SetInstruction() {}
 }

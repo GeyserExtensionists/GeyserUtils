@@ -13,6 +13,7 @@
         <module>geyser</module>
         <module>spigot</module>
         <module>velocity</module>
+        <module>bungee</module>
     </modules>
 
     <properties>

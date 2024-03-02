@@ -12,6 +12,7 @@ import org.cloudburstmc.protocol.bedrock.data.camera.CameraEase;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraFadeInstruction;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraSetInstruction;
 import org.cloudburstmc.protocol.common.util.OptionalBoolean;
+import org.geysermc.geyser.api.bedrock.camera.*;
 
 public class Converter {
 
@@ -60,41 +61,56 @@ public class Converter {
     }
 
 
-    public static CameraFadeInstruction serializeFadeInstruction(FadeInstruction instruction) {
+    public static CameraFade serializeFadeInstruction(FadeInstruction instruction) {
         CameraFadeInstruction cbInstruction = new CameraFadeInstruction();
-
+        CameraFade.Builder builder = CameraFade.builder();
         if (instruction.getColor() != null) {
-            cbInstruction.setColor(serializeColor(instruction.getColor()));
+            builder.color(serializeColor(instruction.getColor()));
         }
         if (instruction.getTime() != null) {
-            cbInstruction.setTimeData(serializeTime(instruction.getTime()));
+
+            builder.fadeOutSeconds(instruction.getTime().fadeOut());
+            builder.fadeInSeconds(instruction.getTime().fadeIn());
+
+            builder.fadeHoldSeconds(instruction.getTime().hold());
         }
 
-        return cbInstruction;
+        return builder.build();
 
     }
 
-    public static CameraSetInstruction serializeSetInstruction(SetInstruction instruction) {
+    public static CameraPerspective serializeCameraPerspective(CameraPreset preset) {
+        for (CameraPerspective value : CameraPerspective.values()) {
+            if (value.id().equals(preset.getIdentifier())) {
+                return value;
+            }
+        }
+        return CameraPerspective.FREE;
+    }
+    public static CameraPosition serializeSetInstruction(SetInstruction instruction) {
 
+        CameraPosition.Builder builder = CameraPosition.builder();
         CameraSetInstruction cbInstruction = new CameraSetInstruction();
 
         if (instruction.getEase() != null) {
-            cbInstruction.setEase(serializeEase(instruction.getEase()));
+            builder.easeType(CameraEaseType.values()[instruction.getEase().easeType()]);
+            builder.easeSeconds(instruction.getEase().time());
         }
         if (instruction.getPos() != null) {
-            cbInstruction.setPos(serializePos(instruction.getPos()));
+            builder.position(serializePos(instruction.getPos()));
         }
         if (instruction.getRot() != null) {
-            cbInstruction.setRot(serializeRot(instruction.getRot()));
+            builder.rotationX((int) instruction.getRot().x());
+            builder.rotationY((int) instruction.getRot().y());
+
         }
         if (instruction.getFacing() != null) {
-            cbInstruction.setFacing(serializePos(instruction.getFacing()));
+            builder.facingPosition(serializePos(instruction.getFacing()));
         }
-
-
-        cbInstruction.setDefaultPreset(OptionalBoolean.of(false));
-        cbInstruction.setPreset(new CameraPresetDefinition(instruction.getPreset().getIdentifier(), instruction.getPreset().getId()));
-        return cbInstruction;
+        if (instruction.getFade() != null) {
+            builder.cameraFade(serializeFadeInstruction(instruction.getFade()));
+        }
+        return builder.build();
 
     }
 

@@ -27,6 +27,7 @@ import org.cloudburstmc.protocol.common.DefinitionRegistry;
 import org.cloudburstmc.protocol.common.NamedDefinition;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
+import org.geysermc.geyser.api.bedrock.camera.CameraPerspective;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
@@ -55,23 +56,19 @@ public class GeyserUtils implements Extension {
         CameraPreset.load();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
 
-        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
-
-            for (GeyserSession session : GeyserImpl.getInstance().onlineConnections()) {
-                sendCameraPresets(session);
-            }
-
-        }, 10, 10, TimeUnit.SECONDS);
 
 
     }
     @Subscribe
     public void onSessionJoin(SessionJoinEvent event) {
+        System.out.println("JOINED");
         if (event.connection() instanceof GeyserSession session) {
-            sendCameraPresets(session);
+            // sendCameraPresets(session);
+            System.out.println("2");
             session.getDownstream().getSession().addListener(new SessionAdapter() {
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
+
                     if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
                         if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {;
                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
@@ -138,15 +135,16 @@ public class GeyserUtils implements Extension {
                                 }
                                 session.sendUpstreamPacket(animateEntityPacket);
                             } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
-                                CameraInstructionPacket bedrockPacket = new CameraInstructionPacket();
                                 if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
-                                    bedrockPacket.setSetInstruction(Converter.serializeSetInstruction(instruction));
+                                    session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
+                                    session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
+
                                 } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
-                                    bedrockPacket.setFadeInstruction(Converter.serializeFadeInstruction(instruction));
+                                    session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
                                 } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction){
-                                    bedrockPacket.setClear(true);
+                                    session.camera().clearCameraInstructions();
                                 }
-                                session.sendUpstreamPacket(bedrockPacket);
+
                             } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
                                 SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
                                 spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session.getDimension()));

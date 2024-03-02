@@ -1,6 +1,7 @@
 package me.zimzaza4.geyserutils.spigot;
 
 import lombok.Getter;
+import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
@@ -25,6 +26,8 @@ public final class GeyserUtils extends JavaPlugin {
         instance = this;
         packetManager = new PacketManager();
         Messenger messenger = this.getServer().getMessenger();
+
+        CameraPreset.load();
         messenger.registerOutgoingPluginChannel(this, GeyserUtilsChannels.MAIN);
         messenger.registerIncomingPluginChannel(this, GeyserUtilsChannels.MAIN, (channel, player, message) -> {
             if (channel.equals(GeyserUtilsChannels.MAIN)) {
