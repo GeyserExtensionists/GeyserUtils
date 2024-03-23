@@ -62,7 +62,6 @@ public class Converter {
 
 
     public static CameraFade serializeFadeInstruction(FadeInstruction instruction) {
-        CameraFadeInstruction cbInstruction = new CameraFadeInstruction();
         CameraFade.Builder builder = CameraFade.builder();
         if (instruction.getColor() != null) {
             builder.color(serializeColor(instruction.getColor()));

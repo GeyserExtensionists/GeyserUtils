@@ -5,6 +5,10 @@ import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCu
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
@@ -22,26 +26,32 @@ import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
+import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
 import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.cloudburstmc.protocol.common.DefinitionRegistry;
 import org.cloudburstmc.protocol.common.NamedDefinition;
 import org.geysermc.event.subscribe.Subscribe;
-import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.api.bedrock.camera.CameraPerspective;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.entity.type.Entity;
+import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
+import org.geysermc.geyser.skin.SkinManager;
+import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
+import static org.geysermc.geyser.skin.SkinManager.buildEntryManually;
 
 public class GeyserUtils implements Extension {
 
@@ -50,27 +60,63 @@ public class GeyserUtils implements Extension {
     @Getter
     public static PacketManager packetManager;
 
+    @Getter
+    public static Map<String, SkinProvider.SkinData> LOADED_SKIN_DATA = new HashMap<>();
+
+    static final SkinProvider.Cape EMPTY_CAPE = new SkinProvider.Cape("", "no-cape", ByteArrays.EMPTY_ARRAY, -1, true);
+
+
     @Subscribe
     public void onLoad(GeyserPostInitializeEvent event) {
         packetManager = new PacketManager();
         CameraPreset.load();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
-
-
-
+        loadSkins();
     }
+
+    public void loadSkins() {
+        LOADED_SKIN_DATA.clear();
+        File folder = this.dataFolder().resolve("skins").toFile();
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        for (File file : folder.listFiles()) {
+            if (file.isDirectory()) {
+                File textureFile = new File(file, "texture.png");
+                File geometryFile = new File(file, "geometry.json");
+
+                try {
+                    SkinProvider.Skin skin = new SkinProvider.Skin(null, file.getName(), Files.readAllBytes(textureFile.toPath()), -1, false, false);
+
+                    String geoId = "";
+                    JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
+                    for (JsonElement element : json.getAsJsonObject().get("minecraft:geometry").getAsJsonArray()) {
+                        if (element.isJsonObject() && element.getAsJsonObject().has("description")) {
+                            geoId = element.getAsJsonObject().get("description").getAsJsonObject().get("identifier").getAsString();
+                            break;
+                        }
+                    }
+                    String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
+                    SkinProvider.SkinGeometry geometry = new SkinProvider.SkinGeometry(geoName, Files.readString(geometryFile.toPath()), false);
+                    LOADED_SKIN_DATA.put(file.getName(), new SkinProvider.SkinData(skin, EMPTY_CAPE, geometry));
+                    this.logger().info("Loaded skin: " + file.getName() + "| geo:" + geoName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     @Subscribe
     public void onSessionJoin(SessionJoinEvent event) {
-        System.out.println("JOINED");
         if (event.connection() instanceof GeyserSession session) {
-            // sendCameraPresets(session);
-            System.out.println("2");
             session.getDownstream().getSession().addListener(new SessionAdapter() {
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
 
                     if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {;
+                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
+                            ;
                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
                             if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
                                 event.connection().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
@@ -141,7 +187,7 @@ public class GeyserUtils implements Extension {
 
                                 } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
                                     session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
-                                } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction){
+                                } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
                                     session.camera().clearCameraInstructions();
                                 }
 
@@ -152,6 +198,13 @@ public class GeyserUtils implements Extension {
                                 spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
                                 spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
                                 session.sendUpstreamPacket(spawnParticleEffectPacket);
+                            } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
+                                if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
+                                    SkinProvider.SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
+                                    if (data != null) {
+                                        sendSkinPacket(session, player, data);
+                                    }
+                                }
                             }
                         }
                     }
@@ -163,32 +216,36 @@ public class GeyserUtils implements Extension {
 
     }
 
-    public static void sendCameraPresets(GeyserSession session) {
-        if (session.getUpstream().getCodecHelper().getCameraPresetDefinitions() == null) {
-
-            session.getUpstream().getCodecHelper().setCameraPresetDefinitions(new DefinitionRegistry<>() {
-                @Override
-                public NamedDefinition getDefinition(int i) {
-                    for (CameraPreset preset : CameraPreset.getPresets().values()) {
-                        if (preset.getId() == i) {
-                            return new CameraPresetDefinition(preset.getIdentifier(), i);
-                        }
-                    }
-
-                    return null;
-                }
-
-                @Override
-                public boolean isRegistered(NamedDefinition namedDefinition) {
-                    return CameraPreset.getPreset(namedDefinition.getIdentifier()) != null;
-                }
-            });
-        }
-        CameraPresetsPacket pk = new CameraPresetsPacket();
-        for (CameraPreset preset : CameraPreset.getPresets().values()) {
-            pk.getPresets().add(Converter.serializeCameraPreset(preset));
+    public static void sendSkinPacket(GeyserSession session, PlayerEntity entity, SkinProvider.SkinData skinData) {
+        SkinProvider.Skin skin = skinData.skin();
+        SkinProvider.Cape cape = skinData.cape();
+        SkinProvider.SkinGeometry geometry = skinData.geometry();
+        if (entity.getUuid().equals(session.getPlayerEntity().getUuid())) {
+            PlayerListPacket.Entry updatedEntry = buildEntryManually(session, entity.getUuid(), entity.getUsername(), entity.getGeyserId(), skin, cape, geometry);
+            PlayerListPacket playerAddPacket = new PlayerListPacket();
+            playerAddPacket.setAction(PlayerListPacket.Action.ADD);
+            playerAddPacket.getEntries().add(updatedEntry);
+            session.sendUpstreamPacket(playerAddPacket);
+        } else {
+            PlayerSkinPacket packet = new PlayerSkinPacket();
+            packet.setUuid(entity.getUuid());
+            packet.setOldSkinName("");
+            packet.setNewSkinName(skin.getTextureUrl());
+            packet.setSkin(getSkin(skin.getTextureUrl(), skin, cape, geometry));
+            packet.setTrustedSkin(true);
+            session.sendUpstreamPacket(packet);
         }
 
-        session.sendUpstreamPacket(pk);
+
     }
+
+    private static SerializedSkin getSkin(String skinId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
+        try {
+            return SerializedSkin.of(skinId, "", geometry.geometryName(), ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.getSkinData()))), Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
+

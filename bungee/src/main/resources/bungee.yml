@@ -1,0 +1,3 @@
+name: GeyserUtils
+version: '${project.version}'
+main: me.zimzaza4.geyserutils.bungee.GeyserUtils

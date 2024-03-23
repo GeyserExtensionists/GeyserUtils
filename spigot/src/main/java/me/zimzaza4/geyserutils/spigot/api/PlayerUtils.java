@@ -3,10 +3,7 @@ package me.zimzaza4.geyserutils.spigot.api;
 import me.zimzaza4.geyserutils.common.animation.Animation;
 import me.zimzaza4.geyserutils.common.camera.instruction.Instruction;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
-import me.zimzaza4.geyserutils.common.packet.AnimateEntityCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.CameraInstructionCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.CameraShakeCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.common.particle.CustomParticle;
 import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
@@ -53,6 +50,13 @@ public class PlayerUtils {
         packet.setParticle(particle);
         packet.setPos(new Pos((float) location.getX(), (float) location.getY(), (float) location.getZ()));
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void sendCustomSkin(Player player, Entity entity, String skin) {
+        CustomSkinPayloadPacket skinPayloadPacket = new CustomSkinPayloadPacket();
+        skinPayloadPacket.setSkinId(skin);
+        skinPayloadPacket.setEntityId(entity.getEntityId());
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(skinPayloadPacket));
 
     }
 }
