@@ -5,7 +5,6 @@ import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCu
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
@@ -18,20 +17,17 @@ import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.*;
-import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
-import me.zimzaza4.geyserutils.geyser.camera.CameraPresetDefinition;
-import me.zimzaza4.geyserutils.geyser.util.Converter;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
+import me.zimzaza4.geyserutils.geyser.util.Converter;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
 import org.cloudburstmc.protocol.bedrock.packet.*;
-import org.cloudburstmc.protocol.common.DefinitionRegistry;
-import org.cloudburstmc.protocol.common.NamedDefinition;
 import org.geysermc.event.subscribe.Subscribe;
+import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
@@ -40,18 +36,16 @@ import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
-import org.geysermc.geyser.skin.SkinManager;
 import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
-
-import static org.geysermc.geyser.skin.SkinManager.buildEntryManually;
 
 public class GeyserUtils implements Extension {
 
@@ -119,7 +113,7 @@ public class GeyserUtils implements Extension {
                             ;
                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
                             if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
-                                event.connection().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
+                                event.connection().camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
                             } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
 
                                 if (formData.action().equals("CLOSE")) {
@@ -237,6 +231,31 @@ public class GeyserUtils implements Extension {
         }
 
 
+    }
+
+    public static PlayerListPacket.Entry buildEntryManually(GeyserSession session, UUID uuid, String username, long geyserId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
+        SerializedSkin serializedSkin = getSkin(skin.getTextureUrl(), skin, cape, geometry);
+        String xuid = "";
+        GeyserSession playerSession = GeyserImpl.getInstance().connectionByUuid(uuid);
+        if (playerSession != null) {
+            xuid = playerSession.getAuthData().xuid();
+        }
+
+        PlayerListPacket.Entry entry;
+        if (session.getPlayerEntity().getUuid().equals(uuid)) {
+            entry = new PlayerListPacket.Entry(session.getAuthData().uuid());
+        } else {
+            entry = new PlayerListPacket.Entry(uuid);
+        }
+
+        entry.setName(username);
+        entry.setEntityId(geyserId);
+        entry.setSkin(serializedSkin);
+        entry.setXuid(xuid);
+        entry.setPlatformChatId("");
+        entry.setTeacher(false);
+        entry.setTrustedSkin(true);
+        return entry;
     }
 
     private static SerializedSkin getSkin(String skinId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
