@@ -5,14 +5,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Setter
-@Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CustomSkinPayloadPacket extends CustomPayloadPacket {
+@Getter
+@Setter
+public class CustomHitBoxPacket extends CustomPayloadPacket {
     private int entityId;
-    private String skinId;
+    private float height;
+    private float width;
 }

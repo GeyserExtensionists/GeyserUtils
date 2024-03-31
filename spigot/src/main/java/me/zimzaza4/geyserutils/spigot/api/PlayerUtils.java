@@ -59,4 +59,10 @@ public class PlayerUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(skinPayloadPacket));
 
     }
+
+    public static void sendCustomHitBox(Player player, Entity entity, float height, float width) {
+        CustomHitBoxPacket packet = new CustomHitBoxPacket(entity.getEntityId(), height, width);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
 }

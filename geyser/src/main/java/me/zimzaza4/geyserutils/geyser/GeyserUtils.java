@@ -210,8 +210,14 @@ public class GeyserUtils implements Extension {
                                         sendSkinPacket(session, player, data);
                                     }
                                 }
+                            } else if (customPacket instanceof CustomHitBoxPacket customHitBoxPacket) {
+                                Entity entity = (session.getEntityCache().getEntityByJavaId(customHitBoxPacket.getEntityId()));
+                                if (entity != null) {
+                                    entity.setBoundingBoxHeight(customHitBoxPacket.getHeight());
+                                    entity.setBoundingBoxWidth(customHitBoxPacket.getWidth());
+                                    entity.updateBedrockMetadata();
+                                }
                             }
-
                         }
                     }
                 }
