@@ -1,7 +1,9 @@
 package me.zimzaza4.geyserutils.geyser;
 
+import com.github.steveice10.mc.protocol.data.game.entity.type.EntityType;
 import com.github.steveice10.mc.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
@@ -76,8 +78,17 @@ public class GeyserUtils implements Extension {
         }
         for (File file : folder.listFiles()) {
             if (file.isDirectory()) {
-                File textureFile = new File(file, "texture.png");
-                File geometryFile = new File(file, "geometry.json");
+                File textureFile = null;
+                File geometryFile = null;
+
+                for (File folderFile : file.listFiles()) {
+                    if (folderFile.getName().endsWith(".png")) {
+                        textureFile = folderFile;
+                    }
+                    if (folderFile.getName().endsWith(".json")) {
+                        geometryFile = folderFile;
+                    }
+                }
 
                 try {
                     SkinProvider.Skin skin = new SkinProvider.Skin(null, file.getName(), Files.readAllBytes(textureFile.toPath()), -1, false, false);
@@ -200,6 +211,7 @@ public class GeyserUtils implements Extension {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -255,6 +267,7 @@ public class GeyserUtils implements Extension {
         entry.setPlatformChatId("");
         entry.setTeacher(false);
         entry.setTrustedSkin(true);
+
         return entry;
     }
 
