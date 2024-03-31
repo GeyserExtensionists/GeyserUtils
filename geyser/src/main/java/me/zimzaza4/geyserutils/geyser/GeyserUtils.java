@@ -242,8 +242,9 @@ public class GeyserUtils implements Extension {
             PlayerSkinPacket packet = new PlayerSkinPacket();
             packet.setUuid(entity.getUuid());
             packet.setOldSkinName("");
-            packet.setNewSkinName(skin.getTextureUrl());
-            packet.setSkin(getSkin(skin.getTextureUrl(), skin, cape, geometry));
+            String skinId = skin.getTextureUrl() + UUID.randomUUID().toString().replace("-", "");
+            packet.setNewSkinName(skinId);
+            packet.setSkin(getSkin(skinId, skin, cape, geometry));
             packet.setTrustedSkin(true);
             session.sendUpstreamPacket(packet);
         }
