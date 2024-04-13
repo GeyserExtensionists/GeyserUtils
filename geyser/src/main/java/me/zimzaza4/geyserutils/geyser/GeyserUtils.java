@@ -3,8 +3,11 @@ package me.zimzaza4.geyserutils.geyser;
 import com.github.steveice10.mc.protocol.data.game.entity.type.EntityType;
 import com.github.steveice10.mc.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.clientbound.ClientboundLoginPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundDamageEventPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import com.github.steveice10.packetlib.Session;
+import com.github.steveice10.packetlib.event.session.PacketSendingEvent;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.JsonElement;
@@ -46,6 +49,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
@@ -116,6 +120,19 @@ public class GeyserUtils implements Extension {
     public void onSessionJoin(SessionJoinEvent event) {
         if (event.connection() instanceof GeyserSession session) {
             session.getDownstream().getSession().addListener(new SessionAdapter() {
+                @Override
+                public void packetSending(PacketSendingEvent event) {
+                    Packet packet = event.getPacket();
+                    if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
+                        if (payloadPacket.getChannel().equals("minecraft:register")) {
+                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
+                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
+                            event.setPacket(new ServerboundCustomPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
+                        }
+                    }
+                }
+
+
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
 

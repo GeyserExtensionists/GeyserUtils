@@ -1,13 +1,12 @@
 package me.zimzaza4.geyserutils.velocity;
 
 import com.google.inject.Inject;
-import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -29,6 +28,6 @@ public class GeyserUtils {
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
 
-        server.getChannelRegistrar().register(MinecraftChannelIdentifier.from(GeyserUtilsChannels.MAIN));
+        server.getChannelRegistrar().register(MinecraftChannelIdentifier.from("geyserutils:main"));
     }
 }
