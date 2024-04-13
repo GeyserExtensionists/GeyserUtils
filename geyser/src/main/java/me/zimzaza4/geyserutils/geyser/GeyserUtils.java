@@ -1,11 +1,7 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import com.github.steveice10.mc.protocol.data.game.entity.type.EntityType;
 import com.github.steveice10.mc.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.ClientboundLoginPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundDamageEventPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.PacketSendingEvent;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
@@ -34,7 +30,7 @@ import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
-import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
+import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.entity.type.Entity;
@@ -43,6 +39,7 @@ import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
@@ -52,6 +49,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class GeyserUtils implements Extension {
 
@@ -73,6 +71,7 @@ public class GeyserUtils implements Extension {
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
         loadSkins();
     }
+
 
     public void loadSkins() {
         LOADED_SKIN_DATA.clear();
@@ -117,129 +116,135 @@ public class GeyserUtils implements Extension {
     }
 
     @Subscribe
-    public void onSessionJoin(SessionJoinEvent event) {
+    public void onSessionJoin(SessionLoginEvent event) {
         if (event.connection() instanceof GeyserSession session) {
-            session.getDownstream().getSession().addListener(new SessionAdapter() {
-                @Override
-                public void packetSending(PacketSendingEvent event) {
-                    Packet packet = event.getPacket();
-                    if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
-                        if (payloadPacket.getChannel().equals("minecraft:register")) {
-                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
-                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
-                            event.setPacket(new ServerboundCustomPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
-                        }
-                    }
-                }
+            GeyserImpl.getInstance().getScheduledThread()
+                            .schedule(() -> session.getDownstream().getSession().addListener(new SessionAdapter() {
 
 
-                @Override
-                public void packetReceived(Session tcpSession, Packet packet) {
-
-                    if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
-                            ;
-                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
-                            if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
-                                event.connection().camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
-                            } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
-
-                                if (formData.action().equals("CLOSE")) {
-                                    NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
-                                    if (openForm != null) {
-                                        openForm.close(session);
+                                @Override
+                                public void packetSending(PacketSendingEvent event) {
+                                    Packet packet = event.getPacket();
+                                    if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
+                                        if (payloadPacket.getChannel().equals("minecraft:register")) {
+                                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
+                                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
+                                            event.setPacket(new ServerboundCustomPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
+                                        }
                                     }
-                                    return;
                                 }
 
-                                NpcDialogueForm form = new NpcDialogueForm();
-                                form.title(formData.title())
-                                        .dialogue(formData.dialogue())
-                                        .bindEntity(session.getEntityCache().getEntityByJavaId(formData.bindEntity()))
-                                        .hasNextForm(formData.hasNextForm());
+                                @Override
+                                public void packetReceived(Session tcpSession, Packet packet) {
 
-                                if (formData.skinData() != null) {
-                                    form.skinData(formData.skinData());
-                                }
+                                    if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
+                                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
+                                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
+                                            if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
+                                                event.connection().camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
+                                            } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
+
+                                                if (formData.action().equals("CLOSE")) {
+                                                    NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
+                                                    if (openForm != null) {
+                                                        openForm.close(session);
+                                                    }
+                                                    return;
+                                                }
+
+                                                NpcDialogueForm form = new NpcDialogueForm();
+                                                form.title(formData.title())
+                                                        .dialogue(formData.dialogue())
+                                                        .bindEntity(session.getEntityCache().getEntityByJavaId(formData.bindEntity()))
+                                                        .hasNextForm(formData.hasNextForm());
+
+                                                if (formData.skinData() != null) {
+                                                    form.skinData(formData.skinData());
+                                                }
 
 
-                                List<Button> buttons = new ArrayList<>();
+                                                List<Button> buttons = new ArrayList<>();
 
-                                if (formData.buttons() != null) {
+                                                if (formData.buttons() != null) {
 
-                                    int i = 0;
-                                    for (NpcDialogueButton button : formData.buttons()) {
+                                                    int i = 0;
+                                                    for (NpcDialogueButton button : formData.buttons()) {
 
 
-                                        int finalI = i;
-                                        buttons.add(new Button(button.text(), button.commands(),
-                                                button.mode(), () -> {
-                                            if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                                                session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                                        int finalI = i;
+                                                        buttons.add(new Button(button.text(), button.commands(),
+                                                                button.mode(), () -> {
+                                                            if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
+                                                                session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                                            }
+                                                        }, button.hasNextForm()));
+                                                        i++;
+                                                    }
+                                                }
+
+                                                form.closeHandler(() -> session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
+                                                form.buttons(buttons);
+
+                                                form.createAndSend(session);
+
+                                            } else if (customPacket instanceof AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
+                                                AnimateEntityPacket animateEntityPacket = getAnimateEntityPacket(animateEntityCustomPayloadPacket);
+                                                for (int id : animateEntityCustomPayloadPacket.getEntityJavaIds()) {
+                                                    Entity entity = session.getEntityCache().getEntityByJavaId(id);
+                                                    if (entity != null) {
+                                                        animateEntityPacket.getRuntimeEntityIds().add(entity.getGeyserId());
+                                                    }
+                                                }
+                                                session.sendUpstreamPacket(animateEntityPacket);
+                                            } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
+                                                if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
+                                                    session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
+                                                    session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
+
+                                                } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
+                                                    session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
+                                                } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
+                                                    session.camera().clearCameraInstructions();
+                                                }
+
+                                            } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
+                                                SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
+                                                spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session.getDimension()));
+                                                spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
+                                                spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
+                                                spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
+                                                session.sendUpstreamPacket(spawnParticleEffectPacket);
+                                            } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
+                                                if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
+                                                    SkinProvider.SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
+                                                    if (data != null) {
+                                                        sendSkinPacket(session, player, data);
+                                                    }
+                                                }
+                                            } else if (customPacket instanceof CustomHitBoxPacket customHitBoxPacket) {
+                                                Entity entity = (session.getEntityCache().getEntityByJavaId(customHitBoxPacket.getEntityId()));
+                                                if (entity != null) {
+                                                    entity.setBoundingBoxHeight(customHitBoxPacket.getHeight());
+                                                    entity.setBoundingBoxWidth(customHitBoxPacket.getWidth());
+                                                    entity.updateBedrockMetadata();
+                                                }
                                             }
-                                        }, button.hasNextForm()));
-                                        i++;
+                                        }
                                     }
                                 }
 
-                                form.closeHandler(() -> session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
-                                form.buttons(buttons);
-
-                                form.createAndSend(session);
-
-                            } else if (customPacket instanceof AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
-                                AnimateEntityPacket animateEntityPacket = new AnimateEntityPacket();
-                                animateEntityPacket.setAnimation(animateEntityCustomPayloadPacket.getAnimation());
-                                animateEntityPacket.setController(animateEntityCustomPayloadPacket.getController());
-                                animateEntityPacket.setBlendOutTime(animateEntityCustomPayloadPacket.getBlendOutTime());
-                                animateEntityPacket.setNextState(animateEntityCustomPayloadPacket.getNextState());
-                                animateEntityPacket.setStopExpressionVersion(animateEntityCustomPayloadPacket.getStopExpressionVersion());
-                                animateEntityPacket.setStopExpression(animateEntityCustomPayloadPacket.getStopExpression());
-                                for (int id : animateEntityCustomPayloadPacket.getEntityJavaIds()) {
-                                    Entity entity = session.getEntityCache().getEntityByJavaId(id);
-                                    if (entity != null) {
-                                        animateEntityPacket.getRuntimeEntityIds().add(entity.getGeyserId());
-                                    }
+                                @NotNull
+                                private static AnimateEntityPacket getAnimateEntityPacket(AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
+                                    AnimateEntityPacket animateEntityPacket = new AnimateEntityPacket();
+                                    animateEntityPacket.setAnimation(animateEntityCustomPayloadPacket.getAnimation());
+                                    animateEntityPacket.setController(animateEntityCustomPayloadPacket.getController());
+                                    animateEntityPacket.setBlendOutTime(animateEntityCustomPayloadPacket.getBlendOutTime());
+                                    animateEntityPacket.setNextState(animateEntityCustomPayloadPacket.getNextState());
+                                    animateEntityPacket.setStopExpressionVersion(animateEntityCustomPayloadPacket.getStopExpressionVersion());
+                                    animateEntityPacket.setStopExpression(animateEntityCustomPayloadPacket.getStopExpression());
+                                    return animateEntityPacket;
                                 }
-                                session.sendUpstreamPacket(animateEntityPacket);
-                            } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
-                                if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
-                                    session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
-                                    session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
-
-                                } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
-                                    session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
-                                } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
-                                    session.camera().clearCameraInstructions();
-                                }
-
-                            } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
-                                SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
-                                spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session.getDimension()));
-                                spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
-                                spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
-                                spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
-                                session.sendUpstreamPacket(spawnParticleEffectPacket);
-                            } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
-                                if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
-                                    SkinProvider.SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
-                                    if (data != null) {
-                                        sendSkinPacket(session, player, data);
-                                    }
-                                }
-                            } else if (customPacket instanceof CustomHitBoxPacket customHitBoxPacket) {
-                                Entity entity = (session.getEntityCache().getEntityByJavaId(customHitBoxPacket.getEntityId()));
-                                if (entity != null) {
-                                    entity.setBoundingBoxHeight(customHitBoxPacket.getHeight());
-                                    entity.setBoundingBoxWidth(customHitBoxPacket.getWidth());
-                                    entity.updateBedrockMetadata();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
+                            }), 100, TimeUnit.MILLISECONDS);
         }
 
 
