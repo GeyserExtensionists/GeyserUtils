@@ -22,6 +22,7 @@ import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
@@ -29,7 +30,11 @@ import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
+import org.geysermc.geyser.api.command.Command;
+import org.geysermc.geyser.api.command.CommandExecutor;
+import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.entity.type.Entity;
@@ -79,6 +84,21 @@ public class GeyserUtils implements Extension {
 
     }
 
+    @Subscribe
+    public void onLoadCommand(GeyserDefineCommandsEvent event) {
+        event.register(Command.builder(this)
+                .name("reloadskin")
+                .aliases(List.of("grs"))
+                .description("Reload GeyserUtils skin.")
+                .executableOnConsole(true)
+                .bedrockOnly(false)
+                .suggestedOpOnly(true)
+                .permission("geyserutils.skin.reload")
+                .executor((source, command, args) -> {
+                    loadSkins();
+                source.sendMessage("Loaded");
+                }).build());
+    }
 
     public void loadSkins() {
         LOADED_SKIN_DATA.clear();
@@ -98,27 +118,33 @@ public class GeyserUtils implements Extension {
                     if (folderFile.getName().endsWith(".json")) {
                         geometryFile = folderFile;
                     }
+
+                    loadSkin(file.getName(), geometryFile, textureFile);
                 }
 
-                try {
-                    SkinProvider.Skin skin = new SkinProvider.Skin(null, file.getName(), Files.readAllBytes(textureFile.toPath()), -1, false, false);
 
-                    String geoId = "";
-                    JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
-                    for (JsonElement element : json.getAsJsonObject().get("minecraft:geometry").getAsJsonArray()) {
-                        if (element.isJsonObject() && element.getAsJsonObject().has("description")) {
-                            geoId = element.getAsJsonObject().get("description").getAsJsonObject().get("identifier").getAsString();
-                            break;
-                        }
-                    }
-                    String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
-                    SkinProvider.SkinGeometry geometry = new SkinProvider.SkinGeometry(geoName, Files.readString(geometryFile.toPath()), false);
-                    LOADED_SKIN_DATA.put(file.getName(), new SkinProvider.SkinData(skin, getEmptyCapeData(), geometry));
-                    this.logger().info("Loaded skin: " + file.getName() + "| geo:" + geoName);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            }
+        }
+    }
+
+    public void loadSkin(String skinId, File geometryFile, File textureFile) {
+        try {
+            SkinProvider.Skin skin = new SkinProvider.Skin(null, skinId, Files.readAllBytes(textureFile.toPath()), -1, false, false);
+
+            String geoId = "";
+            JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
+            for (JsonElement element : json.getAsJsonObject().get("minecraft:geometry").getAsJsonArray()) {
+                if (element.isJsonObject() && element.getAsJsonObject().has("description")) {
+                    geoId = element.getAsJsonObject().get("description").getAsJsonObject().get("identifier").getAsString();
+                    break;
                 }
             }
+            String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
+            SkinProvider.SkinGeometry geometry = new SkinProvider.SkinGeometry(geoName, Files.readString(geometryFile.toPath()), false);
+            LOADED_SKIN_DATA.put(skinId, new SkinProvider.SkinData(skin, getEmptyCapeData(), geometry));
+            this.logger().info("Loaded skin: " + skinId + "| geo:" + geoName);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
