@@ -22,8 +22,9 @@ public class CameraPreset {
 
     public static void registerCameraPresets(CameraPreset... presets) {
         for (var preset : presets) {
-            if (PRESETS.containsKey(preset.getIdentifier()))
-                throw new IllegalArgumentException("Camera preset " + preset.getIdentifier() + " already exists!");
+            if (PRESETS.containsKey(preset.getIdentifier())) {
+                continue;
+            }
             PRESETS.put(preset.getIdentifier(), preset);
         }
         int id = 0;
