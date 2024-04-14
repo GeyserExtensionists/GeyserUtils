@@ -78,15 +78,10 @@
     <dependencies>
         <dependency>
             <groupId>org.geysermc.geyser</groupId>
-            <artifactId>api</artifactId>
-            <version>2.2.3-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.geysermc.geyser</groupId>
             <artifactId>core</artifactId>
             <version>2.2.3-SNAPSHOT</version>
-            <scope>provided</scope>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/Geyser-Standalone.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>me.zimzaza4</groupId>

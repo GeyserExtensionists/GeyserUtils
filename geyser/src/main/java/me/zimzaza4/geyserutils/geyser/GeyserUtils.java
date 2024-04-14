@@ -6,8 +6,10 @@ import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.PacketSendingEvent;
 import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.*;
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
@@ -22,7 +24,6 @@ import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
@@ -31,12 +32,17 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.command.Command;
-import org.geysermc.geyser.api.command.CommandExecutor;
-import org.geysermc.geyser.api.command.CommandSource;
+import org.geysermc.geyser.api.connection.GeyserConnection;
+import org.geysermc.geyser.api.entity.EntityDefinition;
+import org.geysermc.geyser.api.entity.EntityIdentifier;
+import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
+import org.geysermc.geyser.api.event.java.ServerSpawnEntityEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
+import org.geysermc.geyser.entity.EntityDefinitions;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
@@ -46,13 +52,11 @@ import org.geysermc.geyser.util.DimensionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -67,13 +71,19 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<String, SkinProvider.SkinData> LOADED_SKIN_DATA = new HashMap<>();
 
+    @Getter
+    public static Map<String, EntityDefinition> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
+
+    @Getter
+    public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
+
     static SkinProvider.Cape EMPTY_CAPE = new SkinProvider.Cape("", "no-cape", new byte[0], -1, true);
     ;
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     @Subscribe
-    public void onLoad(GeyserPostInitializeEvent event) {
+    public void onEnable(GeyserPostInitializeEvent event) {
 
         packetManager = new PacketManager();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
@@ -82,6 +92,52 @@ public class GeyserUtils implements Extension {
 
         CameraPreset.load();
 
+        LOADED_ENTITY_DEFINITIONS
+                .forEach((s, entityDefinition) -> {
+                    logger().info("DEF ENTITY:" + s);
+                });
+    }
+
+    public void loadEntities() {
+
+        Gson gson = new Gson();
+        File file = this.dataFolder().resolve("entities.json").toFile();
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+                gson.toJson(new JsonArray(),new FileWriter(file));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        try {
+            List<String> list = gson.fromJson(new FileReader(file), new TypeToken<List<String>>(){}.getType());
+
+            for (String s : list) {
+                logger().info("Registered: " + s);
+                LOADED_ENTITY_DEFINITIONS.put(s,
+                        EntityDefinition.builder()
+                                .identifier(EntityIdentifier.builder().identifier(s)
+                                        .summonable(true)
+                                        .spawnEgg(false).build())
+                                .height(0.6f)
+                                .width(0.6f)
+                                .build());
+            }
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    @Subscribe
+    public void onEntitiesDefine(GeyserDefineEntitiesEvent event) {
+        loadEntities();
+        for (EntityDefinition value : LOADED_ENTITY_DEFINITIONS.values()) {
+            event.register(value);
+        }
     }
 
     @Subscribe
@@ -96,7 +152,7 @@ public class GeyserUtils implements Extension {
                 .permission("geyserutils.skin.reload")
                 .executor((source, command, args) -> {
                     loadSkins();
-                source.sendMessage("Loaded");
+                    source.sendMessage("Loaded");
                 }).build());
     }
 
@@ -119,8 +175,9 @@ public class GeyserUtils implements Extension {
                         geometryFile = folderFile;
                     }
 
-                    loadSkin(file.getName(), geometryFile, textureFile);
                 }
+
+                loadSkin(file.getName(), geometryFile, textureFile);
 
 
             }
@@ -150,10 +207,18 @@ public class GeyserUtils implements Extension {
 
     @Subscribe
     public void onSessionJoin(SessionLoginEvent event) {
+        CUSTOM_ENTITIES.put(event.connection(), CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS).build());
         if (event.connection() instanceof GeyserSession session) {
             registerPacketListener(session);
         }
     }
+
+    @Subscribe
+    public void onSessionQuit(SessionDisconnectEvent event) {
+        CUSTOM_ENTITIES.remove(event.connection());
+    }
+
+
 
     public void registerPacketListener(GeyserSession session) {
 
@@ -278,6 +343,14 @@ public class GeyserUtils implements Extension {
                                    entity.setBoundingBoxWidth(customHitBoxPacket.getWidth());
                                    entity.updateBedrockMetadata();
                                }
+                           } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
+                               logger().info("ID:" + customEntityPacket.getEntityId() + "; CUSTOM:" + customEntityPacket.getIdentifier());
+                               if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
+                                   return;
+                               }
+
+                               Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
+                               cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
                            }
                        }
                    }
@@ -286,6 +359,17 @@ public class GeyserUtils implements Extension {
 
            });
        }, 80, TimeUnit.MILLISECONDS);
+    }
+
+    @Subscribe
+    public void onEntitySpawn(ServerSpawnEntityEvent event) {
+        String def = CUSTOM_ENTITIES.get(event.connection()).getIfPresent(event.entityId());
+        if (event.entityDefinition().entityIdentifier().identifier().contains("bat")) {
+            logger().info("SPAWN ID:" + event.entityId());
+        }
+        if (def == null) return;
+        logger().info("SPAWN DEF:" + def);
+        event.entityDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, event.entityDefinition()));
     }
 
     @NotNull
@@ -351,8 +435,10 @@ public class GeyserUtils implements Extension {
     }
 
     private static SerializedSkin getSkin(String skinId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
+
         try {
-            return SerializedSkin.of(skinId, "", geometry.geometryName(), ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.getSkinData()))), Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
+            ImageData image = ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.getSkinData())));
+            return SerializedSkin.of(skinId, "", geometry.geometryName(),image , Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

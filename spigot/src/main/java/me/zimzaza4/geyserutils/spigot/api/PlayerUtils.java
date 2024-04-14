@@ -65,4 +65,10 @@ public class PlayerUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }
+
+    public static void setCustomEntity(Player player, int entityId, String def) {
+        CustomEntityPacket packet = new CustomEntityPacket(entityId, def);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
 }
