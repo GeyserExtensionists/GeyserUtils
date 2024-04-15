@@ -32,6 +32,7 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.command.Command;
+import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.entity.EntityDefinition;
 import org.geysermc.geyser.api.entity.EntityIdentifier;
@@ -135,6 +136,7 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onEntitiesDefine(GeyserDefineEntitiesEvent event) {
         loadEntities();
+
         for (EntityDefinition value : LOADED_ENTITY_DEFINITIONS.values()) {
             event.register(value);
         }
@@ -144,6 +146,7 @@ public class GeyserUtils implements Extension {
     public void onLoadCommand(GeyserDefineCommandsEvent event) {
         event.register(Command.builder(this)
                 .name("reloadskin")
+                .source(GeyserConnection.class)
                 .aliases(List.of("grs"))
                 .description("Reload GeyserUtils skin.")
                 .executableOnConsole(true)
@@ -364,11 +367,11 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onEntitySpawn(ServerSpawnEntityEvent event) {
         String def = CUSTOM_ENTITIES.get(event.connection()).getIfPresent(event.entityId());
-        if (event.entityDefinition().entityIdentifier().identifier().contains("bat")) {
-            logger().info("SPAWN ID:" + event.entityId());
+        if (event.entityDefinition().entityIdentifier().identifier().endsWith("bat")) {
+            System.out.println("GEYSER SPAWN: " + event.entityId());
         }
         if (def == null) return;
-        logger().info("SPAWN DEF:" + def);
+        System.out.println("FIND DEF:" + def);
         event.entityDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, event.entityDefinition()));
     }
 
