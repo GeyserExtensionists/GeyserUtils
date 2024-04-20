@@ -25,6 +25,8 @@ import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
 import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
+import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
 import org.cloudburstmc.protocol.bedrock.packet.*;
@@ -32,7 +34,6 @@ import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.command.Command;
-import org.geysermc.geyser.api.command.CommandSource;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.entity.EntityDefinition;
 import org.geysermc.geyser.api.entity.EntityIdentifier;
@@ -43,7 +44,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
-import org.geysermc.geyser.entity.EntityDefinitions;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
@@ -57,10 +57,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class GeyserUtils implements Extension {
 
@@ -136,7 +133,6 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onEntitiesDefine(GeyserDefineEntitiesEvent event) {
         loadEntities();
-
         for (EntityDefinition value : LOADED_ENTITY_DEFINITIONS.values()) {
             event.register(value);
         }
@@ -247,7 +243,6 @@ public class GeyserUtils implements Extension {
 
                @Override
                public void packetReceived(Session tcpSession, Packet packet) {
-
                    if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
                        if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
@@ -339,11 +334,12 @@ public class GeyserUtils implements Extension {
                                        sendSkinPacket(session, player, data);
                                    }
                                }
-                           } else if (customPacket instanceof CustomHitBoxPacket customHitBoxPacket) {
-                               Entity entity = (session.getEntityCache().getEntityByJavaId(customHitBoxPacket.getEntityId()));
+                           } else if (customPacket instanceof CustomEntityDataPacket customEntityDataPacket) {
+                               Entity entity = (session.getEntityCache().getEntityByJavaId(customEntityDataPacket.getEntityId()));
                                if (entity != null) {
-                                   entity.setBoundingBoxHeight(customHitBoxPacket.getHeight());
-                                   entity.setBoundingBoxWidth(customHitBoxPacket.getWidth());
+                                   if (customEntityDataPacket.getHeight() != null) entity.setBoundingBoxHeight(customEntityDataPacket.getHeight());
+                                   if (customEntityDataPacket.getWidth() != null) entity.setBoundingBoxWidth(customEntityDataPacket.getWidth());
+                                   if (customEntityDataPacket.getScale() != null) entity.getDirtyMetadata().put(EntityDataTypes.SCALE, customEntityDataPacket.getScale());
                                    entity.updateBedrockMetadata();
                                }
                            } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
@@ -367,9 +363,8 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onEntitySpawn(ServerSpawnEntityEvent event) {
         String def = CUSTOM_ENTITIES.get(event.connection()).getIfPresent(event.entityId());
-        if (event.entityDefinition().entityIdentifier().identifier().endsWith("bat")) {
-            System.out.println("GEYSER SPAWN: " + event.entityId());
-        }
+
+        System.out.println("ID: " + event.entityId() + " Type: " + event.entityDefinition().entityIdentifier().identifier());
         if (def == null) return;
         System.out.println("FIND DEF:" + def);
         event.entityDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, event.entityDefinition()));

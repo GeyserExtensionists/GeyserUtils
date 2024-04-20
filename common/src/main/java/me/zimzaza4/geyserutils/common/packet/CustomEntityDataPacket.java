@@ -9,8 +9,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class CustomHitBoxPacket extends CustomPayloadPacket {
+public class CustomEntityDataPacket extends CustomPayloadPacket {
     private int entityId;
-    private float height;
-    private float width;
+
+    private Float height;
+    private Float width;
+
+    private Float scale;
+
 }

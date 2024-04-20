@@ -61,7 +61,18 @@ public class PlayerUtils {
     }
 
     public static void sendCustomHitBox(Player player, Entity entity, float height, float width) {
-        CustomHitBoxPacket packet = new CustomHitBoxPacket(entity.getEntityId(), height, width);
+        CustomEntityDataPacket packet = new CustomEntityDataPacket();
+        packet.setEntityId(entity.getEntityId());
+        packet.setWidth(width);
+        packet.setHeight(height);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
+
+    public static void sendCustomScale(Player player, Entity entity, float scale) {
+        CustomEntityDataPacket packet = new CustomEntityDataPacket();
+        packet.setEntityId(entity.getEntityId());
+        packet.setScale(scale);
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }
