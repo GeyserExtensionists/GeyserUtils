@@ -96,6 +96,16 @@ public class GeyserUtils implements Extension {
                 });
     }
 
+    public static void addCustomEntity(String id) {
+        LOADED_ENTITY_DEFINITIONS.put(id,
+                EntityDefinition.builder()
+                        .identifier(EntityIdentifier.builder().identifier(id)
+                                .summonable(true)
+                                .spawnEgg(false).build())
+                        .height(0.6f)
+                        .width(0.6f)
+                        .build());
+    }
     public void loadEntities() {
 
         Gson gson = new Gson();
@@ -114,14 +124,7 @@ public class GeyserUtils implements Extension {
 
             for (String s : list) {
                 logger().info("Registered: " + s);
-                LOADED_ENTITY_DEFINITIONS.put(s,
-                        EntityDefinition.builder()
-                                .identifier(EntityIdentifier.builder().identifier(s)
-                                        .summonable(true)
-                                        .spawnEgg(false).build())
-                                .height(0.6f)
-                                .width(0.6f)
-                                .build());
+                addCustomEntity(s);
             }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
@@ -363,10 +366,7 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onEntitySpawn(ServerSpawnEntityEvent event) {
         String def = CUSTOM_ENTITIES.get(event.connection()).getIfPresent(event.entityId());
-
-        System.out.println("ID: " + event.entityId() + " Type: " + event.entityDefinition().entityIdentifier().identifier());
         if (def == null) return;
-        System.out.println("FIND DEF:" + def);
         event.entityDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, event.entityDefinition()));
     }
 
