@@ -346,7 +346,6 @@ public class GeyserUtils implements Extension {
                                    entity.updateBedrockMetadata();
                                }
                            } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
-                               logger().info("ID:" + customEntityPacket.getEntityId() + "; CUSTOM:" + customEntityPacket.getIdentifier());
                                if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
                                    return;
                                }
