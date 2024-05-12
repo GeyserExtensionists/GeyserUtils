@@ -82,4 +82,10 @@ public class PlayerUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }
+
+    public static void sendEntityScoreUpdate(Player player, Entity entity, String objective, int score) {
+        UpdateEntityScorePacket packet = new UpdateEntityScorePacket(entity.getEntityId(), objective, score);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
 }

@@ -1,15 +1,18 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import com.github.steveice10.mc.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
-import com.github.steveice10.mc.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
-import com.github.steveice10.packetlib.Session;
-import com.github.steveice10.packetlib.event.session.PacketSendingEvent;
-import com.github.steveice10.packetlib.event.session.SessionAdapter;
-import com.github.steveice10.packetlib.packet.Packet;
+import org.geysermc.mcprotocollib.network.packet.Packet;
+import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
+import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
+import org.geysermc.mcprotocollib.network.Session;
+import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
+import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.reflect.TypeToken;
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
@@ -22,11 +25,11 @@ import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
+import me.zimzaza4.geyserutils.geyser.scoreboard.EntityScoreboard;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
-import org.cloudburstmc.protocol.bedrock.data.entity.EntityFlag;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
 import org.cloudburstmc.protocol.bedrock.packet.*;
@@ -50,6 +53,7 @@ import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
+import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -57,7 +61,10 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class GeyserUtils implements Extension {
 
@@ -75,6 +82,9 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
 
+    @Getter
+    public static Map<GeyserConnection, EntityScoreboard> scoreboards = new ConcurrentHashMap<>();
+
     static SkinProvider.Cape EMPTY_CAPE = new SkinProvider.Cape("", "no-cape", new byte[0], -1, true);
     ;
 
@@ -85,7 +95,6 @@ public class GeyserUtils implements Extension {
 
         packetManager = new PacketManager();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
-        logger().info("Loading Skins:");
         loadSkins();
 
         CameraPreset.load();
@@ -115,7 +124,7 @@ public class GeyserUtils implements Extension {
                 file.createNewFile();
                 gson.toJson(new JsonArray(),new FileWriter(file));
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
 
         }
@@ -126,11 +135,8 @@ public class GeyserUtils implements Extension {
                 logger().info("Registered: " + s);
                 addCustomEntity(s);
             }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
         }
-
-
     }
 
     @Subscribe
@@ -337,6 +343,7 @@ public class GeyserUtils implements Extension {
                                        sendSkinPacket(session, player, data);
                                    }
                                }
+
                            } else if (customPacket instanceof CustomEntityDataPacket customEntityDataPacket) {
                                Entity entity = (session.getEntityCache().getEntityByJavaId(customEntityDataPacket.getEntityId()));
                                if (entity != null) {
@@ -352,6 +359,12 @@ public class GeyserUtils implements Extension {
 
                                Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
                                cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
+                           } else if (customPacket instanceof UpdateEntityScorePacket updateEntityScorePacket) {
+                               EntityScoreboard scoreboard = scoreboards.computeIfAbsent(session, k -> new EntityScoreboard(session));
+                               Entity entity = (session.getEntityCache().getEntityByJavaId(updateEntityScorePacket.getEntityId()));
+                               if (entity != null) {
+                                   scoreboard.updateScore(updateEntityScorePacket.getObjective(), entity.getGeyserId(), updateEntityScorePacket.getScore());
+                               }
                            }
                        }
                    }
