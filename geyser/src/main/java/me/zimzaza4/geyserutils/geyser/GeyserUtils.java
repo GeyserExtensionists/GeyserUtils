@@ -1,11 +1,5 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import org.geysermc.mcprotocollib.network.packet.Packet;
-import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
-import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
-import org.geysermc.mcprotocollib.network.Session;
-import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
-import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.reflect.TypeToken;
@@ -13,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
@@ -47,13 +42,22 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
+import org.geysermc.geyser.api.skin.Cape;
+import org.geysermc.geyser.api.skin.Skin;
+import org.geysermc.geyser.api.skin.SkinData;
+import org.geysermc.geyser.api.skin.SkinGeometry;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
+import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
+import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
+import org.geysermc.mcprotocollib.network.packet.Packet;
+import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
+import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -74,7 +78,7 @@ public class GeyserUtils implements Extension {
     public static PacketManager packetManager;
 
     @Getter
-    public static Map<String, SkinProvider.SkinData> LOADED_SKIN_DATA = new HashMap<>();
+    public static Map<String, SkinData> LOADED_SKIN_DATA = new HashMap<>();
 
     @Getter
     public static Map<String, EntityDefinition> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
@@ -85,15 +89,14 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<GeyserConnection, EntityScoreboard> scoreboards = new ConcurrentHashMap<>();
 
-    static SkinProvider.Cape EMPTY_CAPE = new SkinProvider.Cape("", "no-cape", new byte[0], -1, true);
-    ;
+    static Cape EMPTY_CAPE = new Cape("", "no-cape", ByteArrays.EMPTY_ARRAY, true);
+
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     @Subscribe
     public void onEnable(GeyserPostInitializeEvent event) {
 
-        packetManager = new PacketManager();
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
         loadSkins();
 
@@ -118,6 +121,7 @@ public class GeyserUtils implements Extension {
     public void loadEntities() {
 
         Gson gson = new Gson();
+        this.dataFolder().toFile().mkdirs();
         File file = this.dataFolder().resolve("entities.json").toFile();
         if (!file.exists()) {
             try {
@@ -194,7 +198,7 @@ public class GeyserUtils implements Extension {
 
     public void loadSkin(String skinId, File geometryFile, File textureFile) {
         try {
-            SkinProvider.Skin skin = new SkinProvider.Skin(null, skinId, Files.readAllBytes(textureFile.toPath()), -1, false, false);
+            Skin skin = new Skin(skinId, Files.readAllBytes(textureFile.toPath()), false);
 
             String geoId = "";
             JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
@@ -205,8 +209,8 @@ public class GeyserUtils implements Extension {
                 }
             }
             String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
-            SkinProvider.SkinGeometry geometry = new SkinProvider.SkinGeometry(geoName, Files.readString(geometryFile.toPath()), false);
-            LOADED_SKIN_DATA.put(skinId, new SkinProvider.SkinData(skin, getEmptyCapeData(), geometry));
+            SkinGeometry geometry = new SkinGeometry(geoName, Files.readString(geometryFile.toPath()));
+            LOADED_SKIN_DATA.put(skinId, new SkinData(skin, getEmptyCapeData(), geometry));
             this.logger().info("Loaded skin: " + skinId + "| geo:" + geoName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -338,7 +342,7 @@ public class GeyserUtils implements Extension {
                                session.sendUpstreamPacket(spawnParticleEffectPacket);
                            } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
                                if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
-                                   SkinProvider.SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
+                                   SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
                                    if (data != null) {
                                        sendSkinPacket(session, player, data);
                                    }
@@ -394,12 +398,23 @@ public class GeyserUtils implements Extension {
         return animateEntityPacket;
     }
 
-    public static void sendSkinPacket(GeyserSession session, PlayerEntity entity, SkinProvider.SkinData skinData) {
-        SkinProvider.Skin skin = skinData.skin();
-        SkinProvider.Cape cape = skinData.cape();
-        SkinProvider.SkinGeometry geometry = skinData.geometry();
+    public static void sendSkinPacket(GeyserSession session, PlayerEntity entity, SkinData skinData) {
+        Skin skin = skinData.skin();
+        Cape cape = skinData.cape();
+        SkinGeometry geometry = skinData.geometry();
+
         if (entity.getUuid().equals(session.getPlayerEntity().getUuid())) {
-            PlayerListPacket.Entry updatedEntry = buildEntryManually(session, entity.getUuid(), entity.getUsername(), entity.getGeyserId(), skin, cape, geometry);
+            // TODO is this special behavior needed?
+            PlayerListPacket.Entry updatedEntry = buildEntryManually(
+                    session,
+                    entity.getUuid(),
+                    entity.getUsername(),
+                    entity.getGeyserId(),
+                    skin,
+                    cape,
+                    geometry
+            );
+
             PlayerListPacket playerAddPacket = new PlayerListPacket();
             playerAddPacket.setAction(PlayerListPacket.Action.ADD);
             playerAddPacket.getEntries().add(updatedEntry);
@@ -408,25 +423,31 @@ public class GeyserUtils implements Extension {
             PlayerSkinPacket packet = new PlayerSkinPacket();
             packet.setUuid(entity.getUuid());
             packet.setOldSkinName("");
-            String skinId = skin.getTextureUrl() + UUID.randomUUID().toString().replace("-", "");
-            packet.setNewSkinName(skinId);
-            packet.setSkin(getSkin(skinId, skin, cape, geometry));
+            packet.setNewSkinName(skin.textureUrl());
+            packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
             packet.setTrustedSkin(true);
             session.sendUpstreamPacket(packet);
         }
-
-
     }
 
-    public static PlayerListPacket.Entry buildEntryManually(GeyserSession session, UUID uuid, String username, long geyserId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
-        SerializedSkin serializedSkin = getSkin(skin.getTextureUrl(), skin, cape, geometry);
+    public static PlayerListPacket.Entry buildEntryManually(GeyserSession session, UUID uuid, String username, long geyserId,
+                                                            Skin skin,
+                                                            Cape cape,
+                                                            SkinGeometry geometry) {
+        SerializedSkin serializedSkin = getSkin(skin.textureUrl(), skin, cape, geometry);
+
+        // This attempts to find the XUID of the player so profile images show up for Xbox accounts
         String xuid = "";
         GeyserSession playerSession = GeyserImpl.getInstance().connectionByUuid(uuid);
+
         if (playerSession != null) {
             xuid = playerSession.getAuthData().xuid();
         }
 
         PlayerListPacket.Entry entry;
+
+        // If we are building a PlayerListEntry for our own session we use our AuthData UUID instead of the Java UUID
+        // as Bedrock expects to get back its own provided UUID
         if (session.getPlayerEntity().getUuid().equals(uuid)) {
             entry = new PlayerListPacket.Entry(session.getAuthData().uuid());
         } else {
@@ -440,21 +461,21 @@ public class GeyserUtils implements Extension {
         entry.setPlatformChatId("");
         entry.setTeacher(false);
         entry.setTrustedSkin(true);
-
         return entry;
     }
 
-    private static SerializedSkin getSkin(String skinId, SkinProvider.Skin skin, SkinProvider.Cape cape, SkinProvider.SkinGeometry geometry) {
+
+    private static SerializedSkin getSkin(String skinId, Skin skin, Cape cape, SkinGeometry geometry) {
 
         try {
-            ImageData image = ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.getSkinData())));
+            ImageData image = ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.skinData())));
             return SerializedSkin.of(skinId, "", geometry.geometryName(),image , Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static SkinProvider.Cape getEmptyCapeData() {
+    public static Cape getEmptyCapeData() {
         return EMPTY_CAPE;
     }
 
