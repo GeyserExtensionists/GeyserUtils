@@ -20,10 +20,15 @@ import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
+import me.zimzaza4.geyserutils.geyser.mappings.ItemParticlesMappings;
+import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
 import me.zimzaza4.geyserutils.geyser.scoreboard.EntityScoreboard;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
+import net.kyori.adventure.key.Key;
+import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
 import org.cloudburstmc.protocol.bedrock.data.skin.ImageData;
 import org.cloudburstmc.protocol.bedrock.data.skin.SerializedSkin;
@@ -33,31 +38,32 @@ import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
 import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.connection.GeyserConnection;
-import org.geysermc.geyser.api.entity.EntityDefinition;
-import org.geysermc.geyser.api.entity.EntityIdentifier;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
-import org.geysermc.geyser.api.event.java.ServerSpawnEntityEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
-import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntitiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.skin.Cape;
 import org.geysermc.geyser.api.skin.Skin;
 import org.geysermc.geyser.api.skin.SkinData;
 import org.geysermc.geyser.api.skin.SkinGeometry;
+import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
+import org.geysermc.geyser.inventory.GeyserItemStack;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
-import org.geysermc.geyser.skin.SkinProvider;
 import org.geysermc.geyser.util.DimensionUtils;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
 import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
 import org.geysermc.mcprotocollib.network.packet.Packet;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentType;
+import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ItemParticleData;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -65,17 +71,13 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class GeyserUtils implements Extension {
 
 
-    NbtMap CLEAR_INSTRUCTION_TAG = NbtMap.builder().putByte("clear", Integer.valueOf(1).byteValue()).build();
     @Getter
-    public static PacketManager packetManager;
+    public static PacketManager packetManager = new PacketManager();
 
     @Getter
     public static Map<String, SkinData> LOADED_SKIN_DATA = new HashMap<>();
@@ -89,7 +91,9 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<GeyserConnection, EntityScoreboard> scoreboards = new ConcurrentHashMap<>();
 
+    public static ItemParticlesMappings particlesMappings = new ItemParticlesMappings();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", ByteArrays.EMPTY_ARRAY, true);
+
 
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -102,13 +106,17 @@ public class GeyserUtils implements Extension {
 
         CameraPreset.load();
 
+        replaceTranslator();
         LOADED_ENTITY_DEFINITIONS
                 .forEach((s, entityDefinition) -> {
                     logger().info("DEF ENTITY:" + s);
                 });
+
+        particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
     }
 
     public static void addCustomEntity(String id) {
+        /*
         LOADED_ENTITY_DEFINITIONS.put(id,
                 EntityDefinition.builder()
                         .identifier(EntityIdentifier.builder().identifier(id)
@@ -117,7 +125,26 @@ public class GeyserUtils implements Extension {
                         .height(0.6f)
                         .width(0.6f)
                         .build());
+
+         */
+        NbtMap registry = Registries.BEDROCK_ENTITY_IDENTIFIERS.get();
+        List<NbtMap> idList = new ArrayList<>(registry.getList("idlist", NbtType.COMPOUND));
+        idList.add(NbtMap.builder()
+                .putString("id", id)
+                .putString("bid", "")
+                .putBoolean("hasspawnegg", false)
+                .putInt("rid", idList.size() + 1)
+                .putBoolean("summonable", false).build()
+        );
+
+        Registries.BEDROCK_ENTITY_IDENTIFIERS.set(NbtMap.builder()
+                .putList("idlist", NbtType.COMPOUND, idList).build()
+        );
+        EntityDefinition<Entity> def = EntityDefinition.builder(null).height(0.1f).width(0.1f).identifier(id).build();
+
+        LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
+
     public void loadEntities() {
 
         Gson gson = new Gson();
@@ -143,12 +170,9 @@ public class GeyserUtils implements Extension {
         }
     }
 
-    @Subscribe
-    public void onEntitiesDefine(GeyserDefineEntitiesEvent event) {
-        loadEntities();
-        for (EntityDefinition value : LOADED_ENTITY_DEFINITIONS.values()) {
-            event.register(value);
-        }
+    public void replaceTranslator() {
+        Registries.JAVA_PACKET_TRANSLATORS
+                .register(ClientboundAddEntityPacket.class, new JavaAddEntityTranslatorReplace());
     }
 
     @Subscribe
@@ -249,7 +273,7 @@ public class GeyserUtils implements Extension {
                        if (payloadPacket.getChannel().equals("minecraft:register")) {
                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
-                           event.setPacket(new ServerboundCustomPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
+                           event.setPacket(new ServerboundCustomPayloadPacket(Key.key("minecraft:register"), channels.getBytes(StandardCharsets.UTF_8)));
                        }
                    }
                }
@@ -294,14 +318,14 @@ public class GeyserUtils implements Extension {
                                        buttons.add(new Button(button.text(), button.commands(),
                                                button.mode(), () -> {
                                            if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                                               session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                               session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(Key.key(GeyserUtilsChannels.MAIN), packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
                                            }
                                        }, button.hasNextForm()));
                                        i++;
                                    }
                                }
 
-                               form.closeHandler(() -> session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
+                               form.closeHandler(() -> session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(Key.key(GeyserUtilsChannels.MAIN), packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
                                form.buttons(buttons);
 
                                form.createAndSend(session);
@@ -371,6 +395,44 @@ public class GeyserUtils implements Extension {
                                }
                            }
                        }
+                   } else if (packet instanceof ClientboundLevelParticlesPacket particlesPacket) {
+                       if (particlesPacket.getParticle().getData() instanceof ItemParticleData data) {
+                           GeyserItemStack itemStack = GeyserItemStack.from(data.getItemStack());
+                           Map<Integer, String> map = particlesMappings.getMappings().get(itemStack.asItem().javaIdentifier());
+                           if (map != null) {
+                               int id = itemStack.getOrCreateComponents().getOrDefault(DataComponentType.CUSTOM_MODEL_DATA, -1);
+                               String particle = map.get(id);
+                               if (particle != null) {
+
+                                   int dimensionId = DimensionUtils.javaToBedrock(session.getDimension());
+
+                                   SpawnParticleEffectPacket stringPacket = new SpawnParticleEffectPacket();
+                                   stringPacket.setIdentifier(particle);
+                                   stringPacket.setDimensionId(dimensionId);
+                                   stringPacket.setMolangVariablesJson(Optional.empty());
+                                   session.sendUpstreamPacket(stringPacket);
+
+                                   if (particlesPacket.getAmount() == 0) {
+                                       // 0 means don't apply the offset
+                                       Vector3f position = Vector3f.from(particlesPacket.getX(), particlesPacket.getY(), particlesPacket.getZ());
+                                       stringPacket.setPosition(position);
+                                   } else {
+                                       Random random = ThreadLocalRandom.current();
+                                       for (int i = 0; i < particlesPacket.getAmount(); i++) {
+                                           double offsetX = random.nextGaussian() * (double) particlesPacket.getOffsetX();
+                                           double offsetY = random.nextGaussian() * (double) particlesPacket.getOffsetY();
+                                           double offsetZ = random.nextGaussian() * (double) particlesPacket.getOffsetZ();
+                                           Vector3f position = Vector3f.from(particlesPacket.getX() + offsetX, particlesPacket.getY() + offsetY, particlesPacket.getZ() + offsetZ);
+                                           stringPacket.setPosition(position);
+                                       }
+                                   }
+                                   session.sendUpstreamPacket(stringPacket);
+
+
+
+                               }
+                           }
+                       }
                    }
                }
 
@@ -379,12 +441,6 @@ public class GeyserUtils implements Extension {
        }, 80, TimeUnit.MILLISECONDS);
     }
 
-    @Subscribe
-    public void onEntitySpawn(ServerSpawnEntityEvent event) {
-        String def = CUSTOM_ENTITIES.get(event.connection()).getIfPresent(event.entityId());
-        if (def == null) return;
-        event.entityDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, event.entityDefinition()));
-    }
 
     @NotNull
     private static AnimateEntityPacket getAnimateEntityPacket(AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
@@ -404,7 +460,6 @@ public class GeyserUtils implements Extension {
         SkinGeometry geometry = skinData.geometry();
 
         if (entity.getUuid().equals(session.getPlayerEntity().getUuid())) {
-            // TODO is this special behavior needed?
             PlayerListPacket.Entry updatedEntry = buildEntryManually(
                     session,
                     entity.getUuid(),
@@ -436,7 +491,6 @@ public class GeyserUtils implements Extension {
                                                             SkinGeometry geometry) {
         SerializedSkin serializedSkin = getSkin(skin.textureUrl(), skin, cape, geometry);
 
-        // This attempts to find the XUID of the player so profile images show up for Xbox accounts
         String xuid = "";
         GeyserSession playerSession = GeyserImpl.getInstance().connectionByUuid(uuid);
 
@@ -445,9 +499,6 @@ public class GeyserUtils implements Extension {
         }
 
         PlayerListPacket.Entry entry;
-
-        // If we are building a PlayerListEntry for our own session we use our AuthData UUID instead of the Java UUID
-        // as Bedrock expects to get back its own provided UUID
         if (session.getPlayerEntity().getUuid().equals(uuid)) {
             entry = new PlayerListPacket.Entry(session.getAuthData().uuid());
         } else {
