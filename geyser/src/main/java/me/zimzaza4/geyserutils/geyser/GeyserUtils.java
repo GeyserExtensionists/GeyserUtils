@@ -2,9 +2,6 @@ package me.zimzaza4.geyserutils.geyser;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
@@ -25,7 +22,7 @@ import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
 import me.zimzaza4.geyserutils.geyser.scoreboard.EntityScoreboard;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
-import net.kyori.adventure.key.Key;
+import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtType;
@@ -67,7 +64,10 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.Clien
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -103,7 +103,7 @@ public class GeyserUtils implements Extension {
 
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
         loadSkins();
-
+        ReflectionUtils.init();
         CameraPreset.load();
 
         replaceTranslator();
@@ -145,30 +145,6 @@ public class GeyserUtils implements Extension {
         LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
 
-    public void loadEntities() {
-
-        Gson gson = new Gson();
-        this.dataFolder().toFile().mkdirs();
-        File file = this.dataFolder().resolve("entities.json").toFile();
-        if (!file.exists()) {
-            try {
-                file.createNewFile();
-                gson.toJson(new JsonArray(),new FileWriter(file));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-        try {
-            List<String> list = gson.fromJson(new FileReader(file), new TypeToken<List<String>>(){}.getType());
-
-            for (String s : list) {
-                logger().info("Registered: " + s);
-                addCustomEntity(s);
-            }
-        } catch (Exception e) {
-        }
-    }
 
     public void replaceTranslator() {
         Registries.JAVA_PACKET_TRANSLATORS
@@ -270,10 +246,10 @@ public class GeyserUtils implements Extension {
                public void packetSending(PacketSendingEvent event) {
                    Packet packet = event.getPacket();
                    if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
-                       if (payloadPacket.getChannel().equals("minecraft:register")) {
+                       if (ReflectionUtils.getChannel(payloadPacket).toString().equals("minecraft:register")) {
                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
-                           event.setPacket(new ServerboundCustomPayloadPacket(Key.key("minecraft:register"), channels.getBytes(StandardCharsets.UTF_8)));
+                           event.setPacket(ReflectionUtils.buildServerboundPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
                        }
                    }
                }
@@ -281,7 +257,7 @@ public class GeyserUtils implements Extension {
                @Override
                public void packetReceived(Session tcpSession, Packet packet) {
                    if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                       if (payloadPacket.getChannel().equals(GeyserUtilsChannels.MAIN)) {
+                       if (ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN)) {
                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
                            if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
                                session.camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
@@ -318,14 +294,14 @@ public class GeyserUtils implements Extension {
                                        buttons.add(new Button(button.text(), button.commands(),
                                                button.mode(), () -> {
                                            if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                                               session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(Key.key(GeyserUtilsChannels.MAIN), packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                               session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
                                            }
                                        }, button.hasNextForm()));
                                        i++;
                                    }
                                }
 
-                               form.closeHandler(() -> session.sendDownstreamPacket(new ServerboundCustomPayloadPacket(Key.key(GeyserUtilsChannels.MAIN), packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
+                               form.closeHandler(() -> session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
                                form.buttons(buttons);
 
                                form.createAndSend(session);
