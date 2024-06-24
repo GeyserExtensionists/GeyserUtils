@@ -26,13 +26,15 @@ public class ReflectionUtils {
 
     public static Method CLIENTBOUND_GET_CHANNEL_METHOD;
 
+    public static boolean OLD_VERSION = false;
+
     @SneakyThrows
     public static void init() {
         PlatformType type = GeyserImpl.getInstance().platformType();
         if (type == PlatformType.STANDALONE) {
             prefix = "";
         } else {
-            prefix = "org.geysermc.geyser.platform." + type.platformName().toLowerCase() + ".";
+            prefix = "org.geysermc.geyser.platform." + type.platformName().toLowerCase() + ".shaded.";
         }
         CLIENTBOUND_PAYLOAD_PACKET_CLASS = ClientboundCustomPayloadPacket.class;
         SERVERBOUND_PAYLOAD_PACKET_CLASS = ServerboundCustomPayloadPacket.class;
@@ -43,6 +45,7 @@ public class ReflectionUtils {
         try {
             SERVERBOUND_PAYLOAD_PACKET_CONSTRUCTOR = SERVERBOUND_PAYLOAD_PACKET_CLASS.getConstructor(KEY_CLASS, byte[].class);
         } catch (NoSuchMethodException e) {
+            OLD_VERSION = true;
             SERVERBOUND_PAYLOAD_PACKET_CONSTRUCTOR = SERVERBOUND_PAYLOAD_PACKET_CLASS.getConstructor(String.class, byte[].class);
         }
         KEY_BUILD_METHOD = KEY_CLASS.getMethod("key", String.class);
@@ -62,6 +65,7 @@ public class ReflectionUtils {
     }
     @SneakyThrows
     public static Object buildKey(String key) {
+        if (OLD_VERSION) return key;
         return KEY_BUILD_METHOD.invoke(null, key);
     }
 
