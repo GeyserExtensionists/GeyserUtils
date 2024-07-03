@@ -6,7 +6,6 @@ import org.geysermc.geyser.api.util.PlatformType;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
@@ -31,7 +30,7 @@ public class ReflectionUtils {
     @SneakyThrows
     public static void init() {
         PlatformType type = GeyserImpl.getInstance().platformType();
-        if (type == PlatformType.STANDALONE) {
+        if (type == PlatformType.STANDALONE || type == PlatformType.VELOCITY) {
             prefix = "";
         } else {
             prefix = "org.geysermc.geyser.platform." + type.platformName().toLowerCase() + ".shaded.";
