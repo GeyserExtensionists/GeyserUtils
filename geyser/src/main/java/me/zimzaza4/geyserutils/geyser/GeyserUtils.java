@@ -45,6 +45,7 @@ import org.geysermc.geyser.api.skin.Skin;
 import org.geysermc.geyser.api.skin.SkinData;
 import org.geysermc.geyser.api.skin.SkinGeometry;
 import org.geysermc.geyser.entity.EntityDefinition;
+import org.geysermc.geyser.entity.properties.GeyserEntityProperties;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.inventory.GeyserItemStack;
@@ -94,13 +95,19 @@ public class GeyserUtils implements Extension {
     public static ItemParticlesMappings particlesMappings = new ItemParticlesMappings();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", ByteArrays.EMPTY_ARRAY, true);
 
-
-
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+
+    private static final Map<String, List<Map.Entry<String, Class<?>>>> properties = new HashMap<>();
+
+    @Getter
+    private static GeyserUtils instance;
+
+    public GeyserUtils() {
+        instance = this;
+    }
 
     @Subscribe
     public void onEnable(GeyserPostInitializeEvent event) {
-
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
         loadSkins();
         ReflectionUtils.init();
@@ -113,6 +120,60 @@ public class GeyserUtils implements Extension {
                 });
 
         particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
+    }
+
+    // the static here is crazy ;(
+    private static GeyserEntityProperties getProperties(String id) {
+        if (!properties.containsKey(id)) return null;
+
+        GeyserEntityProperties.Builder builder = new GeyserEntityProperties.Builder();
+        List<Map.Entry<String, Class<?>>> pairs = properties.get(id);
+        pairs.forEach(p -> {
+            // only bool, float and int support for now
+            if (p.getValue() == Boolean.class) builder.addBoolean(p.getKey());
+            else if (p.getValue() == Float.class) builder.addBoolean(p.getKey());
+            else if (p.getValue() == Integer.class) builder.addBoolean(p.getKey());
+            else instance.logger().info("Found unknown property: " + p.getKey());
+        });
+
+        return builder.build();
+    }
+
+    private static boolean containsProperty(String entityId, String identifier) {
+        if (!properties.containsKey(entityId)) return false;
+
+        return properties.get(entityId).stream().anyMatch(p -> p.getKey().equalsIgnoreCase(identifier));
+    }
+
+    public static void addProperty(String entityId, String identifier, Class<?> type) {
+        if (containsProperty(entityId, identifier)) return;
+
+        List<Map.Entry<String, Class<?>>> pairs = properties.getOrDefault(entityId, new ArrayList<>());
+        pairs.add(new AbstractMap.SimpleEntry<>(identifier, type));
+
+        if (properties.containsKey(entityId)) properties.replace(entityId, pairs);
+        else properties.put(entityId, pairs);
+    }
+
+    public static void registerProperties(String entityId) {
+        GeyserEntityProperties entityProperties = getProperties(entityId);
+        if (entityProperties == null) return;
+
+        properties.values().stream()
+                .flatMap(List::stream)
+                .map(Map.Entry::getKey)
+                .forEach(id -> {
+                    Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id));
+                });
+
+
+        Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
+
+        EntityDefinition old = LOADED_ENTITY_DEFINITIONS.get(entityId);
+        LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
+                old.width(), old.height(), old.offset(), entityProperties, old.translators()));
+
+        instance.logger().info("Defined property: " + entityId + " in registry.");
     }
 
     public static void addCustomEntity(String id) {
@@ -140,7 +201,9 @@ public class GeyserUtils implements Extension {
         Registries.BEDROCK_ENTITY_IDENTIFIERS.set(NbtMap.builder()
                 .putList("idlist", NbtType.COMPOUND, idList).build()
         );
-        EntityDefinition<Entity> def = EntityDefinition.builder(null).height(0.1f).width(0.1f).identifier(id).build();
+
+        EntityDefinition<Entity> def = EntityDefinition.builder(null)
+                .height(0.1f).width(0.1f).identifier(id).registeredProperties(getProperties(id)).build();
 
         LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
@@ -356,6 +419,45 @@ public class GeyserUtils implements Extension {
                                    if (customEntityDataPacket.getScale() != null) entity.getDirtyMetadata().put(EntityDataTypes.SCALE, customEntityDataPacket.getScale());
                                    entity.updateBedrockMetadata();
                                }
+                           } else if (customPacket instanceof EntityPropertyPacket entityPropertyPacket) {
+                               Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId()));
+                               if (entity != null) {
+                                   if (entityPropertyPacket.getIdentifier() == null
+                                           || entityPropertyPacket.getValue() == null) return;
+
+                                   String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
+                                   if (def == null) return;
+
+                                   if (!containsProperty(def, entityPropertyPacket.getIdentifier())) {
+                                       addProperty(def, entityPropertyPacket.getIdentifier(), entityPropertyPacket.getValue().getClass());
+
+                                       registerProperties(def);
+                                   }
+
+                                   if (entity.getPropertyManager() == null) return;
+                                   entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(),
+                                           (Boolean) entityPropertyPacket.getValue());
+
+                                   entity.updateBedrockEntityProperties();
+                               }
+                           } else if (customPacket instanceof EntityPropertyRegisterPacket entityPropertyRegisterPacket) {
+                               if (entityPropertyRegisterPacket.getIdentifier() == null
+                                       || entityPropertyRegisterPacket.getType() == null) return;
+
+                               Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyRegisterPacket.getEntityId()));
+                               if (entity != null) {
+                                   String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
+                                   if (def == null) return;
+
+                                   if (!containsProperty(def, entityPropertyRegisterPacket.getIdentifier())) {
+                                       addProperty(def, entityPropertyRegisterPacket.getIdentifier(), entityPropertyRegisterPacket.getType());
+
+                                       registerProperties(def);
+                                       logger().info("Defined property: " + entityPropertyRegisterPacket.getIdentifier() + " in registry.");
+                                   }
+                               }
+
+
                            } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
                                if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
                                    return;

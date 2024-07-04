@@ -7,6 +7,7 @@ import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.common.particle.CustomParticle;
 import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -87,5 +88,39 @@ public class PlayerUtils {
         UpdateEntityScorePacket packet = new UpdateEntityScorePacket(entity.getEntityId(), objective, score);
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
+    }
+
+    // (yes I'm aware it's "horrible" code, I'm just matching the energy of this plugin), also this aint player packets at all lmao
+
+    public static void registerProperty(Player player, Entity entity, String identifier, Class<?> type) {
+        EntityPropertyRegisterPacket packet = new EntityPropertyRegisterPacket();
+        packet.setEntityId(entity.getEntityId());
+        packet.setIdentifier(identifier);
+        packet.setType(type);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void sendBoolProperty(Player player, Entity entity, String identifier, Boolean value) {
+        EntityPropertyPacket<Boolean> packet = new EntityPropertyPacket<>();
+        packet.setEntityId(entity.getEntityId());
+        packet.setIdentifier(identifier);
+        packet.setValue(value);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void sendFloatProperty(Player player, Entity entity, String identifier, Float value) {
+        EntityPropertyPacket<Float> packet = new EntityPropertyPacket<>();
+        packet.setEntityId(entity.getEntityId());
+        packet.setIdentifier(identifier);
+        packet.setValue(value);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void sendIntProperty(Player player, Entity entity, String identifier, Integer value) {
+        EntityPropertyPacket<Integer> packet = new EntityPropertyPacket<>();
+        packet.setEntityId(entity.getEntityId());
+        packet.setIdentifier(identifier);
+        packet.setValue(value);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
     }
 }

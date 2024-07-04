@@ -31,11 +31,7 @@ public class ReflectionUtils {
     @SneakyThrows
     public static void init() {
         PlatformType type = GeyserImpl.getInstance().platformType();
-        if (type == PlatformType.STANDALONE) {
-            prefix = "";
-        } else {
-            prefix = "org.geysermc.geyser.platform." + type.platformName().toLowerCase() + ".shaded.";
-        }
+        prefix = type == PlatformType.STANDALONE || type == PlatformType.VELOCITY ? "" : "org.geysermc.geyser.platform." + type.platformName().toLowerCase() + ".shaded.";
         CLIENTBOUND_PAYLOAD_PACKET_CLASS = ClientboundCustomPayloadPacket.class;
         SERVERBOUND_PAYLOAD_PACKET_CLASS = ServerboundCustomPayloadPacket.class;
         KEY_CLASS = Class.forName(prefix + "net.kyori.adventure.key.Key");
