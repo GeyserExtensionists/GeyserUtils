@@ -12,8 +12,10 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PlayerUtils {
 
@@ -78,6 +80,14 @@ public class PlayerUtils {
 
     }
 
+    public static void sendCustomColor(Player player, Entity entity, Color color) {
+        CustomEntityDataPacket packet = new CustomEntityDataPacket();
+        packet.setEntityId(entity.getEntityId());
+        packet.setColor(color.getRGB());
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
+
     public static void setCustomEntity(Player player, int entityId, String def) {
         CustomEntityPacket packet = new CustomEntityPacket(entityId, def);
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
@@ -90,7 +100,7 @@ public class PlayerUtils {
 
     }
 
-    // (yes I'm aware it's "horrible" code, I'm just matching the energy of this plugin), also this aint player packets at all lmao
+    // (yes I'm aware it's "horrible" code), also this aint player packets at all lmao
 
     public static void registerProperty(Player player, Entity entity, String identifier, Class<?> type) {
         EntityPropertyRegisterPacket packet = new EntityPropertyRegisterPacket();
@@ -108,6 +118,19 @@ public class PlayerUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
     }
 
+    public static void sendBoolProperties(Player player, Entity entity, Map<String, Boolean> bundle) {
+        BundlePacket packet = new BundlePacket();
+        bundle.forEach((identifier, value) -> {
+            EntityPropertyPacket<Boolean> propertyPacket = new EntityPropertyPacket<>();
+            propertyPacket.setEntityId(entity.getEntityId());
+            propertyPacket.setIdentifier(identifier);
+            propertyPacket.setValue(value);
+            packet.addPacket(propertyPacket);
+        });
+
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
     public static void sendFloatProperty(Player player, Entity entity, String identifier, Float value) {
         EntityPropertyPacket<Float> packet = new EntityPropertyPacket<>();
         packet.setEntityId(entity.getEntityId());
@@ -116,11 +139,37 @@ public class PlayerUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
     }
 
+    public static void sendFloatProperties(Player player, Entity entity, Map<String, Float> bundle) {
+        BundlePacket packet = new BundlePacket();
+        bundle.forEach((identifier, value) -> {
+            EntityPropertyPacket<Float> propertyPacket = new EntityPropertyPacket<>();
+            propertyPacket.setEntityId(entity.getEntityId());
+            propertyPacket.setIdentifier(identifier);
+            propertyPacket.setValue(value);
+            packet.addPacket(propertyPacket);
+        });
+
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
     public static void sendIntProperty(Player player, Entity entity, String identifier, Integer value) {
         EntityPropertyPacket<Integer> packet = new EntityPropertyPacket<>();
         packet.setEntityId(entity.getEntityId());
         packet.setIdentifier(identifier);
         packet.setValue(value);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void sendIntProperties(Player player, Entity entity, Map<String, Integer> bundle) {
+        BundlePacket packet = new BundlePacket();
+        bundle.forEach((identifier, value) -> {
+            EntityPropertyPacket<Integer> propertyPacket = new EntityPropertyPacket<>();
+            propertyPacket.setEntityId(entity.getEntityId());
+            propertyPacket.setIdentifier(identifier);
+            propertyPacket.setValue(value);
+            packet.addPacket(propertyPacket);
+        });
+
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
     }
 }

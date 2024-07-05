@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.awt.*;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -16,5 +18,7 @@ public class CustomEntityDataPacket extends CustomPayloadPacket {
     private Float width;
 
     private Float scale;
+
+    private Integer color;
 
 }

@@ -25,6 +25,7 @@
 
 package me.zimzaza4.geyserutils.geyser.replace;
 
+import me.zimzaza4.geyserutils.geyser.GeyserUtils;
 import org.geysermc.geyser.entity.properties.GeyserEntityPropertyManager;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Pose;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
@@ -130,10 +131,7 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
 
         String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
         if (def != null) {
-            System.out.println("CUSTOM ENTITY :" + entity.getEntityId() + " | " + def);
-
             EntityDefinition newDef = LOADED_ENTITY_DEFINITIONS.getOrDefault(def, entity.getDefinition());
-            System.out.println("CUSTOM DEF : " + newDef);
             entity.setDefinition(newDef);
 
             // reinstantiate the entity object to create the propertymanager.
