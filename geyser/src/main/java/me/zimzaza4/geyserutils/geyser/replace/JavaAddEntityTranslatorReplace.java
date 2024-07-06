@@ -25,6 +25,8 @@
 
 package me.zimzaza4.geyserutils.geyser.replace;
 
+import me.zimzaza4.geyserutils.geyser.GeyserUtils;
+import org.geysermc.geyser.entity.properties.GeyserEntityPropertyManager;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Pose;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.object.FallingBlockData;
@@ -43,6 +45,8 @@ import org.geysermc.geyser.skin.SkinManager;
 import org.geysermc.geyser.text.GeyserLocale;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
 import org.geysermc.geyser.translator.protocol.Translator;
+
+import java.lang.reflect.Field;
 
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.CUSTOM_ENTITIES;
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIONS;
@@ -127,8 +131,12 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
 
         String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
         if (def != null) {
-            // System.out.println("CUSTOM ENTITY :" + event.entityId() + " | " + def);
-            entity.setDefinition(LOADED_ENTITY_DEFINITIONS.getOrDefault(def, entity.getDefinition()));
+            EntityDefinition newDef = LOADED_ENTITY_DEFINITIONS.getOrDefault(def, entity.getDefinition());
+            entity.setDefinition(newDef);
+
+            // reinstantiate the entity object to create the propertymanager.
+            entity = new Entity(entity.getSession(), entity.getEntityId(), entity.getGeyserId(), entity.getUuid(),
+                    entity.getDefinition(), entity.getPosition(), entity.getMotion(), yaw, pitch, headYaw);
         }
 
         session.getEntityCache().spawnEntity(entity);

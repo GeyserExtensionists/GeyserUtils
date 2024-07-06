@@ -5,20 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.awt.*;
-
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
-public class CustomEntityDataPacket extends CustomPayloadPacket {
+public class EntityPropertyPacket<T> extends CustomPayloadPacket {
     private int entityId;
 
-    private Float height;
-    private Float width;
-
-    private Float scale;
-
-    private Integer color;
+    private String identifier;
+    private T value;
 
 }
