@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
@@ -97,7 +96,7 @@ public class GeyserUtils implements Extension {
     public static Map<GeyserConnection, EntityScoreboard> scoreboards = new ConcurrentHashMap<>();
 
     public static ItemParticlesMappings particlesMappings = new ItemParticlesMappings();
-    static Cape EMPTY_CAPE = new Cape("", "no-cape", ByteArrays.EMPTY_ARRAY, true);
+    static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
