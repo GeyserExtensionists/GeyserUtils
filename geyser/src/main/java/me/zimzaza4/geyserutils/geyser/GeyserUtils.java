@@ -22,6 +22,7 @@ import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
 import me.zimzaza4.geyserutils.geyser.scoreboard.EntityScoreboard;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
+import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
 import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
 import net.kyori.adventure.text.format.TextColor;
 import org.cloudburstmc.math.vector.Vector3f;
@@ -609,28 +610,45 @@ public class GeyserUtils implements Extension {
     }
 
     private static int getColor(int argb) {
-        TextColor color = TextColor.color(argb);
-        List<TextColor> colors = Arrays.asList(
-                TextColor.color(255, 255, 255),     // 0: White
-                TextColor.color(255, 170, 0),       // 1: Orange -> Gold
-                TextColor.color(255, 85, 255),      // 2: Magenta -> Light Purple
-                TextColor.color(85, 85, 255),       // 3: Light Blue -> Blue
-                TextColor.color(255, 255, 85),      // 4: Yellow
-                TextColor.color(85, 255, 85),       // 5: Lime -> Green
-                TextColor.color(255, 85, 85),       // 6: Pink -> Red
-                TextColor.color(170, 170, 170),     // 7: Gray
-                TextColor.color(85, 85, 85),        // 8: Light Gray -> Dark Gray
-                TextColor.color(85, 255, 255),      // 9: Cyan -> Aqua
-                TextColor.color(0, 170, 0),           // 10: Green > Dark Green
-                TextColor.color(0, 0, 170),         // 11: Blue -> Dark Blue
-                TextColor.color(170, 0, 170),       // 12: Purple -> Dark Purple
-                TextColor.color(0, 170, 0),         // 13: Green -> Dark Green
-                TextColor.color(170, 0, 0),         // 14: Red -> Dark Red
-                TextColor.color(0, 0, 0)            // 15: Black
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
 
+        double[] colorLab = DeltaUtils.rgbToLab(r, g, b);
+
+        List<int[]> colors = Arrays.asList(
+                new int[]{249, 255, 254},    // 0: White
+                new int[]{249, 128, 29},     // 1: Orange
+                new int[]{199, 78, 189},     // 2: Magenta
+                new int[]{58, 179, 218},     // 3: Light Blue
+                new int[]{254, 216, 61},     // 4: Yellow
+                new int[]{128, 199, 31},     // 5: Lime
+                new int[]{243, 139, 170},    // 6: Pink
+                new int[]{71, 79, 82},       // 7: Gray
+                new int[]{159, 157, 151},    // 8: Light Gray
+                new int[]{22, 156, 156},     // 9: Cyan
+                new int[]{137, 50, 184},     // 10: Purple
+                new int[]{60, 68, 170},      // 11: Blue
+                new int[]{131, 84, 50},      // 12: Brown
+                new int[]{94, 124, 22},      // 13: Green
+                new int[]{176, 46, 38},      // 14: Red
+                new int[]{29, 29, 33}        // 15: Black
         );
 
-        return colors.indexOf(TextColor.nearestColorTo(colors, color));
+        int closestColorIndex = -1;
+        double minDeltaE = Double.MAX_VALUE;
+
+        for (int i = 0; i < colors.size(); i++) {
+            int[] rgb = colors.get(i);
+            double[] lab = DeltaUtils.rgbToLab(rgb[0], rgb[1], rgb[2]);
+            double deltaE = DeltaUtils.calculateDeltaE(colorLab, lab);
+            if (deltaE < minDeltaE) {
+                minDeltaE = deltaE;
+                closestColorIndex = i;
+            }
+        }
+
+        return closestColorIndex;
     }
 
 }
