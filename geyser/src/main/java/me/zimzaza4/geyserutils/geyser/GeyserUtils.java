@@ -427,6 +427,13 @@ public class GeyserUtils implements Extension {
                 }
             }
             session.sendUpstreamPacket(animateEntityPacket);
+        } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
+            if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
+                return;
+            }
+
+            Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
+            cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
         } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
             if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
                 session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
