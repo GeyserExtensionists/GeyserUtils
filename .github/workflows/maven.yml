@@ -40,7 +40,7 @@ jobs:
           automatic_release_tag: latest
           prerelease: false
           files: |
-            spigot/target/*.jar
-            geyser/target/*.jar
-            velocity/target/*.jar
-            bungee/target/*.jar
+            spigot/target/geyserutils-*.jar
+            geyser/target/geyserutils-*.jar
+            velocity/target/geyserutils-*.jar
+            bungee/target/geyserutils-*.jar
