@@ -18,12 +18,10 @@ import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
 import me.zimzaza4.geyserutils.geyser.mappings.ItemParticlesMappings;
 import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
-import me.zimzaza4.geyserutils.geyser.scoreboard.EntityScoreboard;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
 import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
 import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
-import net.kyori.adventure.text.format.TextColor;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtType;
@@ -66,7 +64,6 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.Clien
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -74,7 +71,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.*;
 
 public class GeyserUtils implements Extension {
@@ -91,9 +87,6 @@ public class GeyserUtils implements Extension {
 
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
-
-    @Getter
-    public static Map<GeyserConnection, EntityScoreboard> scoreboards = new ConcurrentHashMap<>();
 
     public static ItemParticlesMappings particlesMappings = new ItemParticlesMappings();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
@@ -117,11 +110,7 @@ public class GeyserUtils implements Extension {
         CameraPreset.load();
 
         replaceTranslator();
-        LOADED_ENTITY_DEFINITIONS
-                .forEach((s, entityDefinition) -> {
-                    logger().info("DEF ENTITY:" + s);
-                });
-
+        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
         particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
     }
 
@@ -504,19 +493,6 @@ public class GeyserUtils implements Extension {
             }
 
 
-        } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
-            if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
-                return;
-            }
-
-            Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
-            cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
-        } else if (customPacket instanceof UpdateEntityScorePacket updateEntityScorePacket) {
-            EntityScoreboard scoreboard = scoreboards.computeIfAbsent(session, k -> new EntityScoreboard(session));
-            Entity entity = (session.getEntityCache().getEntityByJavaId(updateEntityScorePacket.getEntityId()));
-            if (entity != null) {
-                scoreboard.updateScore(updateEntityScorePacket.getObjective(), entity.getGeyserId(), updateEntityScorePacket.getScore());
-            }
         }
     }
 

@@ -13,12 +13,9 @@ import java.awt.*;
 @Setter
 public class CustomEntityDataPacket extends CustomPayloadPacket {
     private int entityId;
-
     private Float height;
     private Float width;
-
     private Float scale;
-
     private Integer color;
 
 }

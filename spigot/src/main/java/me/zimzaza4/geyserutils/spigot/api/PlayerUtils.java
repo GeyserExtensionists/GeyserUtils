@@ -94,13 +94,10 @@ public class PlayerUtils {
 
     }
 
-    public static void sendEntityScoreUpdate(Player player, Entity entity, String objective, int score) {
-        UpdateEntityScorePacket packet = new UpdateEntityScorePacket(entity.getEntityId(), objective, score);
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
-
-    }
-
     // (yes I'm aware it's "horrible" code), also this aint player packets at all lmao
+    // right, so this part needs to be refactored xD
+    // the plugin didn't have this much functionality in its earliest days (it even just have camera shakes),
+    // so I didn't think too much about it
 
     public static void registerProperty(Player player, Entity entity, String identifier, Class<?> type) {
         EntityPropertyRegisterPacket packet = new EntityPropertyRegisterPacket();
