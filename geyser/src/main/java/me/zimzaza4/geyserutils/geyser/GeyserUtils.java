@@ -165,7 +165,7 @@ public class GeyserUtils implements Extension {
         LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
                 old.width(), old.height(), old.offset(), entityProperties, old.translators()));
 
-        instance.logger().info("Defined property: " + entityId + " in registry.");
+        instance.logger().info("Defined entity: " + entityId + " in registry.");
     }
 
     public static void addCustomEntity(String id) {
@@ -429,8 +429,10 @@ public class GeyserUtils implements Extension {
             session.sendUpstreamPacket(animateEntityPacket);
         } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
             if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
+               // System.out.println("Not a vaild entity:" + customEntityPacket.getEntityId());
                 return;
             }
+            // System.out.println("custom entity:" + customEntityPacket.getEntityId());
 
             Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
             cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
