@@ -479,9 +479,11 @@ public class GeyserUtils implements Extension {
                         || entityPropertyPacket.getValue() == null) return;
 
                 if (entity.getPropertyManager() == null) return;
-                entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(),
-                        (Boolean) entityPropertyPacket.getValue());
-
+                if (entityPropertyPacket.getValue() instanceof Boolean value) {
+                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                } else if (entityPropertyPacket.getValue() instanceof Integer value) {
+                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                }
                 entity.updateBedrockEntityProperties();
             }
         } else if (customPacket instanceof EntityPropertyRegisterPacket entityPropertyRegisterPacket) {
