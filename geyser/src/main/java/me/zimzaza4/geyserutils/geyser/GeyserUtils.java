@@ -470,6 +470,8 @@ public class GeyserUtils implements Extension {
                 if (customEntityDataPacket.getScale() != null) entity.getDirtyMetadata().put(EntityDataTypes.SCALE, customEntityDataPacket.getScale());
                 if (customEntityDataPacket.getColor() != null)
                     entity.getDirtyMetadata().put(EntityDataTypes.COLOR, Byte.parseByte(String.valueOf(getColor(customEntityDataPacket.getColor()))));
+                if (customEntityDataPacket.getVariant() != null)
+                    entity.getDirtyMetadata().put(EntityDataTypes.VARIANT, customEntityDataPacket.getVariant());
                 entity.updateBedrockMetadata();
             }
         } else if (customPacket instanceof EntityPropertyPacket entityPropertyPacket) {

@@ -36,6 +36,15 @@ public class EntityUtils {
 
     }
 
+    public static void sendVariant(Player player, int id, int variant) {
+        CustomEntityDataPacket packet = new CustomEntityDataPacket();
+        packet.setEntityId(id);
+        packet.setVariant(variant);
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+
+    }
+
+
     public static void setCustomEntity(Player player, int entityId, String def) {
         CustomEntityPacket packet = new CustomEntityPacket(entityId, def);
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
