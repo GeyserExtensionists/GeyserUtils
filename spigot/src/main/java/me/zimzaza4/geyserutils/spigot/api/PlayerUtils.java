@@ -75,8 +75,8 @@ public class PlayerUtils {
         EntityUtils.sendCustomColor(player, entity.getEntityId(), color);
     }
 
-    public static void setCustomEntity(Player player, Entity entity, String def) {
-        EntityUtils.setCustomEntity(player, entity.getEntityId(), def);
+    public static void setCustomEntity(Player player, int id, String def) {
+        EntityUtils.setCustomEntity(player, id, def);
     }
 
     // (yes I'm aware it's "horrible" code), also this aint player packets at all lmao
