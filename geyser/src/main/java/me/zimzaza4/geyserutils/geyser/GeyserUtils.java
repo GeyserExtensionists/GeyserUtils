@@ -112,6 +112,7 @@ public class GeyserUtils implements Extension {
         replaceTranslator();
         logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
         particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
+        MountFix.start();
     }
 
     // the static here is crazy ;(
