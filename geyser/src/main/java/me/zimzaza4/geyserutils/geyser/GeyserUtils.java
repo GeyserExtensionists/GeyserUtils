@@ -124,8 +124,8 @@ public class GeyserUtils implements Extension {
         pairs.forEach(p -> {
             // only bool, float and int support for now
             if (p.getValue() == Boolean.class) builder.addBoolean(p.getKey());
-            else if (p.getValue() == Float.class) builder.addBoolean(p.getKey());
-            else if (p.getValue() == Integer.class) builder.addBoolean(p.getKey());
+            else if (p.getValue() == Float.class) builder.addFloat(p.getKey());
+            else if (p.getValue() == Integer.class) builder.addInt(p.getKey());
             else instance.logger().info("Found unknown property: " + p.getKey());
         });
 
@@ -209,19 +209,7 @@ public class GeyserUtils implements Extension {
 
     @Subscribe
     public void onLoadCommand(GeyserDefineCommandsEvent event) {
-        event.register(Command.builder(this)
-                .name("reloadskin")
-                .source(GeyserConnection.class)
-                .aliases(List.of("grs"))
-                .description("Reload GeyserUtils skin.")
-                .executableOnConsole(true)
-                .bedrockOnly(false)
-                .suggestedOpOnly(true)
-                .permission("geyserutils.skin.reload")
-                .executor((source, command, args) -> {
-                    loadSkins();
-                    source.sendMessage("Loaded");
-                }).build());
+
     }
 
     public void loadSkins() {
