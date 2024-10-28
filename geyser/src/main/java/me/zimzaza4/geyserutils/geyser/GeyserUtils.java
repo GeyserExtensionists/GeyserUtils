@@ -59,6 +59,10 @@ import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponen
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ItemParticleData;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosRotPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveVehiclePacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundTeleportEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
 import org.jetbrains.annotations.NotNull;
@@ -68,6 +72,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -78,6 +83,11 @@ public class GeyserUtils implements Extension {
 
     @Getter
     public static PacketManager packetManager = new PacketManager();
+
+    @Getter
+    public static List<String> REGISTERED_ENTITIES = new ArrayList<>();
+
+    public static boolean GEYSER_LOADED = false;
 
     @Getter
     public static Map<String, SkinData> LOADED_SKIN_DATA = new HashMap<>();
@@ -181,6 +191,14 @@ public class GeyserUtils implements Extension {
                         .build());
 
          */
+
+        REGISTERED_ENTITIES.add(id);
+        registerEntityToGeyser(id);
+    }
+
+    public static void registerEntityToGeyser(String id) {
+        Registries.init();
+
         NbtMap registry = Registries.BEDROCK_ENTITY_IDENTIFIERS.get();
         List<NbtMap> idList = new ArrayList<>(registry.getList("idlist", NbtType.COMPOUND));
         idList.add(NbtMap.builder()
