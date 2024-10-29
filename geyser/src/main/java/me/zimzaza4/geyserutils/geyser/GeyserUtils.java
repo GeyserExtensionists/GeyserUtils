@@ -32,7 +32,6 @@ import org.cloudburstmc.protocol.bedrock.packet.*;
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.api.bedrock.camera.CameraShake;
-import org.geysermc.geyser.api.command.Command;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
@@ -59,10 +58,6 @@ import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponen
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ItemParticleData;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosRotPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveVehiclePacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundTeleportEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
 import org.jetbrains.annotations.NotNull;
@@ -72,7 +67,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -84,8 +78,9 @@ public class GeyserUtils implements Extension {
     @Getter
     public static PacketManager packetManager = new PacketManager();
 
-    @Getter
     public static List<String> REGISTERED_ENTITIES = new ArrayList<>();
+    private static List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
+
 
     public static boolean GEYSER_LOADED = false;
 
@@ -120,6 +115,13 @@ public class GeyserUtils implements Extension {
         CameraPreset.load();
 
         replaceTranslator();
+        GEYSER_LOADED = true;
+        for (String registeredEntity : REGISTERED_ENTITIES) {
+            registerEntityToGeyser(registeredEntity);
+        }
+        for (String id : ENTITIES_WAIT_FOR_LOAD) {
+            registerPropertiesForGeyser(id);
+        }
         logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
         particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
         MountFix.start();
@@ -159,9 +161,16 @@ public class GeyserUtils implements Extension {
     }
 
     public static void registerProperties(String entityId) {
+        if (GEYSER_LOADED) {
+            registerProperties(entityId);
+        }
+        ENTITIES_WAIT_FOR_LOAD.add(entityId);
+    }
+
+    public static void  registerPropertiesForGeyser(String entityId) {
+
         GeyserEntityProperties entityProperties = getProperties(entityId);
         if (entityProperties == null) return;
-
         properties.values().stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
@@ -191,14 +200,12 @@ public class GeyserUtils implements Extension {
                         .build());
 
          */
-
+        if (GEYSER_LOADED) {
+            registerEntityToGeyser(id);
+        }
         REGISTERED_ENTITIES.add(id);
-        registerEntityToGeyser(id);
     }
-
     public static void registerEntityToGeyser(String id) {
-        Registries.init();
-
         NbtMap registry = Registries.BEDROCK_ENTITY_IDENTIFIERS.get();
         List<NbtMap> idList = new ArrayList<>(registry.getList("idlist", NbtType.COMPOUND));
         idList.add(NbtMap.builder()
