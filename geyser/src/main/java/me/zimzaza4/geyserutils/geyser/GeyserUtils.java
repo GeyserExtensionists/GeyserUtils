@@ -339,7 +339,7 @@ public class GeyserUtils implements Extension {
                                String particle = map.get(id);
                                if (particle != null) {
 
-                                   int dimensionId = DimensionUtils.javaToBedrock(session.getDimension());
+                                   int dimensionId = DimensionUtils.javaToBedrock(session);
 
                                    SpawnParticleEffectPacket stringPacket = new SpawnParticleEffectPacket();
                                    stringPacket.setIdentifier(particle);
@@ -463,7 +463,7 @@ public class GeyserUtils implements Extension {
 
         } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
             SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
-            spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session.getDimension()));
+            spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session));
             spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
             spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
             spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));

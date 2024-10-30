@@ -4,14 +4,11 @@ import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
-import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
+import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
 import me.zimzaza4.geyserutils.spigot.api.form.NpcDialogueForm;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
-
-import java.util.function.BiConsumer;
 
 public final class GeyserUtils extends JavaPlugin {
 
