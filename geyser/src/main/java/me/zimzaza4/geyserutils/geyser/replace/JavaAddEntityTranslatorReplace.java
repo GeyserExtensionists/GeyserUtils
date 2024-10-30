@@ -25,15 +25,6 @@
 
 package me.zimzaza4.geyserutils.geyser.replace;
 
-import me.zimzaza4.geyserutils.geyser.GeyserUtils;
-import org.geysermc.geyser.entity.properties.GeyserEntityPropertyManager;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Pose;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.object.FallingBlockData;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.object.ProjectileData;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.object.WardenData;
-import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.geysermc.geyser.GeyserImpl;
 import org.geysermc.geyser.entity.EntityDefinition;
@@ -44,17 +35,21 @@ import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinManager;
 import org.geysermc.geyser.text.GeyserLocale;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
-import org.geysermc.geyser.translator.protocol.Translator;
-
-import java.lang.reflect.Field;
+import org.geysermc.geyser.util.EnvironmentUtils;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Pose;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.object.Direction;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.object.FallingBlockData;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.object.ProjectileData;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.object.WardenData;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.CUSTOM_ENTITIES;
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIONS;
 
 public class JavaAddEntityTranslatorReplace extends PacketTranslator<ClientboundAddEntityPacket> {
     @Override
-    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) {
-        EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
+    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) { EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
         if (definition == null) {
             session.getGeyser().getLogger().debug("Could not find an entity definition with type " + packet.getType());
             return;
@@ -88,10 +83,13 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
                 entity.setHeadYaw(headYaw);
                 entity.setMotion(motion);
             }
-            session.getEntityCache().cacheEntity(entity);
 
             entity.sendPlayer();
-            SkinManager.requestAndHandleSkinAndCape(entity, session, null);
+            // only load skin if we're not in a test environment.
+            // Otherwise, it tries to load various resources
+            if (!EnvironmentUtils.IS_UNIT_TESTING) {
+                SkinManager.requestAndHandleSkinAndCape(entity, session, null);
+            }
             return;
         }
 
@@ -128,7 +126,6 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
                 entity.setPose(Pose.EMERGING);
             }
         }
-
         String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
         if (def != null) {
             EntityDefinition newDef = LOADED_ENTITY_DEFINITIONS.getOrDefault(def, entity.getDefinition());
