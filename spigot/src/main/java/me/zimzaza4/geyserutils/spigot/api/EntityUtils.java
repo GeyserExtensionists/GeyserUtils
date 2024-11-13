@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Map;
 
 public class EntityUtils {
@@ -43,7 +44,6 @@ public class EntityUtils {
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
 
     }
-
 
     public static void setCustomEntity(Player player, int entityId, String def) {
         CustomEntityPacket packet = new CustomEntityPacket(entityId, def);
@@ -126,4 +126,5 @@ public class EntityUtils {
 
         player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
     }
+
 }
