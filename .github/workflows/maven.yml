@@ -22,7 +22,8 @@ jobs:
           
       # Build
       - name: Build with Maven
-        run: man clean package
+        run: mvn -B package --file pom.xml
+    
         
       - name: Auto release
         uses: "marvinpinto/action-automatic-releases@latest"
