@@ -20,19 +20,11 @@ jobs:
           java-version: 17
           distribution: 'zulu'
           
-      - name: Restore Maven cache
-        uses: skjolber/maven-cache-github-action@v1
-        with:
-          step: restore
-          
       # Build
       - name: Build with Maven
-        run: mvn package
+        run: mvn -B package --file pom.xml
+    
         
-      - name: Save Maven cache
-        uses: skjolber/maven-cache-github-action@v1
-        with:
-          step: save
       - name: Auto release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
