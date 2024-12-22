@@ -16,13 +16,11 @@ import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
-import me.zimzaza4.geyserutils.geyser.mappings.ItemParticlesMappings;
 import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
 import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
 import me.zimzaza4.geyserutils.geyser.util.Converter;
 import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
 import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
-import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
@@ -46,7 +44,6 @@ import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.entity.properties.GeyserEntityProperties;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
-import org.geysermc.geyser.inventory.GeyserItemStack;
 import org.geysermc.geyser.registry.Registries;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.util.DimensionUtils;
@@ -54,12 +51,9 @@ import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.session.PacketSendingEvent;
 import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
 import org.geysermc.mcprotocollib.network.packet.Packet;
-import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentType;
-import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ItemParticleData;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -70,7 +64,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class GeyserUtils implements Extension {
 
@@ -93,7 +90,6 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
 
-    public static ItemParticlesMappings particlesMappings = new ItemParticlesMappings();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -123,7 +119,6 @@ public class GeyserUtils implements Extension {
             registerPropertiesForGeyser(id);
         }
         logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
-        particlesMappings.read(dataFolder().resolve("item_particles_mappings.json"));
         MountFix.start();
     }
 
@@ -330,45 +325,8 @@ public class GeyserUtils implements Extension {
                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
                            handleCustomPacket(session, customPacket);
                        }
-                   } else if (packet instanceof ClientboundLevelParticlesPacket particlesPacket) {
-                       if (particlesPacket.getParticle().getData() instanceof ItemParticleData data) {
-                           GeyserItemStack itemStack = GeyserItemStack.from(data.getItemStack());
-                           Map<Integer, String> map = particlesMappings.getMappings().get(itemStack.asItem().javaIdentifier());
-                           if (map != null) {
-                               int id = itemStack.getOrCreateComponents().getOrDefault(DataComponentType.CUSTOM_MODEL_DATA, -1);
-                               String particle = map.get(id);
-                               if (particle != null) {
-
-                                   int dimensionId = DimensionUtils.javaToBedrock(session);
-
-                                   SpawnParticleEffectPacket stringPacket = new SpawnParticleEffectPacket();
-                                   stringPacket.setIdentifier(particle);
-                                   stringPacket.setDimensionId(dimensionId);
-                                   stringPacket.setMolangVariablesJson(Optional.empty());
-                                   session.sendUpstreamPacket(stringPacket);
-
-                                   if (particlesPacket.getAmount() == 0) {
-                                       // 0 means don't apply the offset
-                                       Vector3f position = Vector3f.from(particlesPacket.getX(), particlesPacket.getY(), particlesPacket.getZ());
-                                       stringPacket.setPosition(position);
-                                   } else {
-                                       Random random = ThreadLocalRandom.current();
-                                       for (int i = 0; i < particlesPacket.getAmount(); i++) {
-                                           double offsetX = random.nextGaussian() * (double) particlesPacket.getOffsetX();
-                                           double offsetY = random.nextGaussian() * (double) particlesPacket.getOffsetY();
-                                           double offsetZ = random.nextGaussian() * (double) particlesPacket.getOffsetZ();
-                                           Vector3f position = Vector3f.from(particlesPacket.getX() + offsetX, particlesPacket.getY() + offsetY, particlesPacket.getZ() + offsetZ);
-                                           stringPacket.setPosition(position);
-                                       }
-                                   }
-                                   session.sendUpstreamPacket(stringPacket);
-                               }
-                           }
-                       }
                    }
                }
-
-
            });
        }, 80, TimeUnit.MILLISECONDS);
     }
