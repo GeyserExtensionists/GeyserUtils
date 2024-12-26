@@ -7,7 +7,6 @@ import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.common.particle.CustomParticle;
 import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;

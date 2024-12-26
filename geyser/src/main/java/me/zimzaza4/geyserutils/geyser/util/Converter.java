@@ -4,7 +4,6 @@ import me.zimzaza4.geyserutils.common.camera.data.*;
 import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
 import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
 import me.zimzaza4.geyserutils.common.util.Pos;
-import me.zimzaza4.geyserutils.geyser.camera.CameraPresetDefinition;
 import org.cloudburstmc.math.vector.Vector2f;
 import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraAudioListener;
@@ -12,7 +11,10 @@ import org.cloudburstmc.protocol.bedrock.data.camera.CameraEase;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraFadeInstruction;
 import org.cloudburstmc.protocol.bedrock.data.camera.CameraSetInstruction;
 import org.cloudburstmc.protocol.common.util.OptionalBoolean;
-import org.geysermc.geyser.api.bedrock.camera.*;
+import org.geysermc.geyser.api.bedrock.camera.CameraEaseType;
+import org.geysermc.geyser.api.bedrock.camera.CameraFade;
+import org.geysermc.geyser.api.bedrock.camera.CameraPerspective;
+import org.geysermc.geyser.api.bedrock.camera.CameraPosition;
 
 public class Converter {
 
@@ -86,6 +88,7 @@ public class Converter {
         }
         return CameraPerspective.FREE;
     }
+
     public static CameraPosition serializeSetInstruction(SetInstruction instruction) {
 
         CameraPosition.Builder builder = CameraPosition.builder();

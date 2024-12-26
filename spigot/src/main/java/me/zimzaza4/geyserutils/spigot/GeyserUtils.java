@@ -17,6 +17,7 @@ public final class GeyserUtils extends JavaPlugin {
 
     @Getter
     private static PacketManager packetManager;
+
     @Override
     public void onEnable() {
         // Plugin startup logic

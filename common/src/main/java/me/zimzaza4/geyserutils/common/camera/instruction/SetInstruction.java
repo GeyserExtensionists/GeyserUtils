@@ -1,10 +1,12 @@
 package me.zimzaza4.geyserutils.common.camera.instruction;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.data.Ease;
-import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.common.camera.data.Rot;
+import me.zimzaza4.geyserutils.common.util.Pos;
 import org.jetbrains.annotations.Nullable;
 
 @AllArgsConstructor
@@ -23,5 +25,7 @@ public class SetInstruction implements Instruction {
     private CameraPreset preset;
     @Nullable
     private FadeInstruction fade;
-    protected SetInstruction() {}
+
+    protected SetInstruction() {
+    }
 }

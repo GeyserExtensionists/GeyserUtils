@@ -9,7 +9,7 @@ import java.util.List;
 
 @Setter
 @Getter
-public class AnimateEntityCustomPayloadPacket extends CustomPayloadPacket{
+public class AnimateEntityCustomPayloadPacket extends CustomPayloadPacket {
     private String animation;
     private String nextState;
     private String stopExpression;

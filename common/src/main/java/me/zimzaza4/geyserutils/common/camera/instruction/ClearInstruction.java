@@ -7,7 +7,8 @@ public class ClearInstruction implements Instruction {
     private static final ClearInstruction INSTANCE = new ClearInstruction();
     private final int clear = 1;
 
-    private ClearInstruction() {}
+    private ClearInstruction() {
+    }
 
     public static ClearInstruction instance() {
         return INSTANCE;

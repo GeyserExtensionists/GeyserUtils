@@ -3,7 +3,6 @@ package me.zimzaza4.geyserutils.geyser;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityLinkData;
 import org.cloudburstmc.protocol.bedrock.packet.SetEntityLinkPacket;
 import org.geysermc.geyser.GeyserImpl;
-import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.entity.EntityDefinitions;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.session.GeyserSession;

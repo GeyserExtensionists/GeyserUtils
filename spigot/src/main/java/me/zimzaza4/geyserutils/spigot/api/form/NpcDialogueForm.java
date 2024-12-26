@@ -8,7 +8,6 @@ import lombok.experimental.Accessors;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.packet.NpcDialogueFormDataCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.util.CustomPayloadPacketUtils;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -27,7 +26,7 @@ import java.util.function.Consumer;
 @AllArgsConstructor
 @Setter
 @Getter
-@Accessors( fluent = true )
+@Accessors(fluent = true)
 public class NpcDialogueForm {
 
     public static Map<String, NpcDialogueForm> FORMS = new HashMap<>();
@@ -41,36 +40,36 @@ public class NpcDialogueForm {
     BiConsumer<String, Integer> handler;
     Consumer<String> closeHandler;
 
+    public static void closeForm(FloodgatePlayer floodgatePlayer) {
+        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(null, null, null, null, -1, null, "CLOSE", false);
+        Player p = Bukkit.getPlayer(floodgatePlayer.getCorrectUniqueId());
+        if (p != null) {
+            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
+        }
+    }
+
     public void send(FloodgatePlayer floodgatePlayer) {
         UUID formId = UUID.randomUUID();
-        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(formId.toString(), title, dialogue, skinData, bindEntity.getEntityId(), buttons, "OPEN",  hasNextForm);
+        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(formId.toString(), title, dialogue, skinData, bindEntity.getEntityId(), buttons, "OPEN", hasNextForm);
         Player p = Bukkit.getPlayer(floodgatePlayer.getCorrectUniqueId());
-        if (p!= null) {
+        if (p != null) {
 
             FORMS.put(formId.toString(), this);
 
             p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
             new BukkitRunnable() {
 
-                 @Override
-                 public void run() {
-                     if (!FORMS.containsKey(formId.toString())) {
-                         this.cancel();
-                     }
-                     if (!p.isOnline()) {
-                         FORMS.remove(formId.toString());
-                     }
+                @Override
+                public void run() {
+                    if (!FORMS.containsKey(formId.toString())) {
+                        this.cancel();
+                    }
+                    if (!p.isOnline()) {
+                        FORMS.remove(formId.toString());
+                    }
 
-                 }
+                }
             }.runTaskTimerAsynchronously(GeyserUtils.getInstance(), 10, 10);
-        }
-    }
-
-    public static void closeForm(FloodgatePlayer floodgatePlayer) {
-        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(null, null, null, null, -1, null, "CLOSE", false);
-        Player p = Bukkit.getPlayer(floodgatePlayer.getCorrectUniqueId());
-        if (p != null) {
-            p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
         }
     }
 }

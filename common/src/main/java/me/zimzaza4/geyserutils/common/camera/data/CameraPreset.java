@@ -11,6 +11,31 @@ import java.util.TreeMap;
 @Getter
 public class CameraPreset {
     private static final Map<String, CameraPreset> PRESETS = new TreeMap<>();
+    public static CameraPreset FIRST_PERSON;
+    public static CameraPreset FREE;
+    public static CameraPreset THIRD_PERSON;
+    public static CameraPreset THIRD_PERSON_FRONT;
+    private String identifier;
+    @Getter
+    private String inheritFrom;
+    @Getter
+    @Nullable
+    private Pos pos;
+    @Getter
+    @Nullable
+    private Rot rot;
+    @Getter
+    private int id;
+    @Builder
+    public CameraPreset(String identifier, String inheritFrom, @Nullable Pos pos, @Nullable Rot rot) {
+        this.identifier = identifier;
+        this.inheritFrom = inheritFrom != null ? inheritFrom : "";
+        this.pos = pos;
+        this.rot = rot;
+    }
+    protected CameraPreset() {
+
+    }
 
     public static Map<String, CameraPreset> getPresets() {
         return PRESETS;
@@ -34,11 +59,6 @@ public class CameraPreset {
         }
     }
 
-    public static CameraPreset FIRST_PERSON;
-    public static CameraPreset FREE;
-    public static CameraPreset THIRD_PERSON;
-    public static CameraPreset THIRD_PERSON_FRONT;
-
     public static void load() {
         FIRST_PERSON = CameraPreset.builder()
                 .identifier("minecraft:first_person")
@@ -56,30 +76,5 @@ public class CameraPreset {
                 .build();
 
         registerCameraPresets(FIRST_PERSON, FREE, THIRD_PERSON, THIRD_PERSON_FRONT);
-    }
-
-    private String identifier;
-    @Getter
-    private String inheritFrom;
-    @Getter
-    @Nullable
-    private Pos pos;
-    @Getter
-    @Nullable
-    private Rot rot;
-
-    @Getter
-    private int id;
-
-    @Builder
-    public CameraPreset(String identifier, String inheritFrom, @Nullable Pos pos, @Nullable Rot rot) {
-        this.identifier = identifier;
-        this.inheritFrom = inheritFrom != null ? inheritFrom : "";
-        this.pos = pos;
-        this.rot = rot;
-    }
-
-    protected CameraPreset() {
-
     }
 }

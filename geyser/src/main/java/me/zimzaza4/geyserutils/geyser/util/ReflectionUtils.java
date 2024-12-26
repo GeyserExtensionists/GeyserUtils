@@ -45,10 +45,12 @@ public class ReflectionUtils {
         }
         KEY_BUILD_METHOD = KEY_CLASS.getMethod("key", String.class);
     }
+
     @SneakyThrows
     public static Object getChannel(ClientboundCustomPayloadPacket packet) {
         return CLIENTBOUND_GET_CHANNEL_METHOD.invoke(packet);
     }
+
     @SneakyThrows
     public static Object getChannel(ServerboundCustomPayloadPacket packet) {
         return SERVERBOUND_GET_CHANNEL_METHOD.invoke(packet);
@@ -58,6 +60,7 @@ public class ReflectionUtils {
     public static ServerboundCustomPayloadPacket buildServerboundPayloadPacket(String key, byte[] data) {
         return (ServerboundCustomPayloadPacket) SERVERBOUND_PAYLOAD_PACKET_CONSTRUCTOR.newInstance(buildKey(key), data);
     }
+
     @SneakyThrows
     public static Object buildKey(String key) {
         if (OLD_VERSION) return key;
