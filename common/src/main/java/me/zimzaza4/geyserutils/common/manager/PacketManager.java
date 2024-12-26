@@ -16,26 +16,24 @@ public class PacketManager {
 
     public PacketManager() {
         objectMapper = new ObjectMapper();
-        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
+        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL_AND_ENUMS, JsonTypeInfo.As.PROPERTY);
         objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
     }
 
 
     public byte[] encodePacket(CustomPayloadPacket packet) {
-
         try {
             return objectMapper.writeValueAsBytes(packet);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to encode packet", e);
         }
-
     }
 
     public CustomPayloadPacket decodePacket(byte[] bytes) {
         try {
             return objectMapper.readValue(bytes, CustomPayloadPacket.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to decode packet", e);
         }
     }
 }

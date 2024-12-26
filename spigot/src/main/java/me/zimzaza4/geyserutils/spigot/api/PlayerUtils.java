@@ -20,7 +20,7 @@ public class PlayerUtils {
 
 
     public static void shakeCamera(Player player, float intensity, float duration, int type) {
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(new CameraShakeCustomPayloadPacket(intensity, duration, type)));
+        GeyserUtils.sendPacket(player, new CameraShakeCustomPayloadPacket(intensity, duration, type));
     }
 
     public static void playEntityAnimation(Player player, Animation animation, Entity... entityList) {
@@ -36,30 +36,27 @@ public class PlayerUtils {
         AnimateEntityCustomPayloadPacket packet = new AnimateEntityCustomPayloadPacket();
         packet.parseFromAnimation(animation);
         packet.setEntityJavaIds(entityList);
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
-
+        GeyserUtils.sendPacket(player, packet);
     }
 
     public static void sendCameraInstruction(Player player, Instruction instruction) {
         CameraInstructionCustomPayloadPacket packet = new CameraInstructionCustomPayloadPacket();
         packet.setInstruction(instruction);
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
-
+        GeyserUtils.sendPacket(player, packet);
     }
 
     public static void sendCustomParticle(Player player, Location location, CustomParticle particle) {
         CustomParticleEffectPayloadPacket packet = new CustomParticleEffectPayloadPacket();
         packet.setParticle(particle);
         packet.setPos(new Pos((float) location.getX(), (float) location.getY(), (float) location.getZ()));
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+        GeyserUtils.sendPacket(player, packet);
     }
 
     public static void sendCustomSkin(Player player, Entity entity, String skin) {
-        CustomSkinPayloadPacket skinPayloadPacket = new CustomSkinPayloadPacket();
-        skinPayloadPacket.setSkinId(skin);
-        skinPayloadPacket.setEntityId(entity.getEntityId());
-        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(skinPayloadPacket));
-
+        CustomSkinPayloadPacket packet = new CustomSkinPayloadPacket();
+        packet.setSkinId(skin);
+        packet.setEntityId(entity.getEntityId());
+        GeyserUtils.sendPacket(player, packet);
     }
 
     public static void sendCustomHitBox(Player player, Entity entity, float height, float width) {

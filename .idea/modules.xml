@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/bungee/geyserutils-bungee.iml" filepath="$PROJECT_DIR$/bungee/geyserutils-bungee.iml" />
+      <module fileurl="file://$PROJECT_DIR$/geyser/geyserutils-geyser.iml" filepath="$PROJECT_DIR$/geyser/geyserutils-geyser.iml" />
+      <module fileurl="file://$PROJECT_DIR$/spigot/geyserutils-spigot.iml" filepath="$PROJECT_DIR$/spigot/geyserutils-spigot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/velocity/geyserutils-velocity.iml" filepath="$PROJECT_DIR$/velocity/geyserutils-velocity.iml" />
+    </modules>
+  </component>
+</project>
