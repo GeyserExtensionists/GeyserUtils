@@ -10,6 +10,7 @@ import java.util.List;
 @Getter
 @Accessors(fluent = true)
 public class NpcDialogueButton {
+
     private String text;
     private List<String> commands;
     private ButtonMode mode;

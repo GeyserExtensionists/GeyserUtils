@@ -10,7 +10,9 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Data
 public class Color {
-    float r;
-    float g;
-    float b;
+
+    private float r;
+    private float g;
+    private float b;
+
 }

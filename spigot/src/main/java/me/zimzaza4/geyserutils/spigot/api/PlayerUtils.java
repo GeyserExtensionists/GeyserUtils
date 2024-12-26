@@ -40,9 +40,7 @@ public class PlayerUtils {
     }
 
     public static void sendCameraInstruction(Player player, Instruction instruction) {
-        CameraInstructionCustomPayloadPacket packet = new CameraInstructionCustomPayloadPacket();
-        packet.setInstruction(instruction);
-        GeyserUtils.sendPacket(player, packet);
+        GeyserUtils.sendPacket(player, new CameraInstructionCustomPayloadPacket(instruction));
     }
 
     public static void sendCustomParticle(Player player, Location location, CustomParticle particle) {
@@ -85,26 +83,26 @@ public class PlayerUtils {
     }
 
     public static void sendBoolProperty(Player player, Entity entity, String identifier, Boolean value) {
-        EntityUtils.sendBoolProperty(player, entity.getEntityId(), identifier, value);
+        EntityUtils.sendProperty(player, entity.getEntityId(), identifier, value);
     }
 
     public static void sendBoolProperties(Player player, Entity entity, Map<String, Boolean> bundle) {
-        EntityUtils.sendBoolProperties(player, entity.getEntityId(), bundle);
+        EntityUtils.sendProperties(player, entity.getEntityId(), bundle);
     }
 
     public static void sendFloatProperty(Player player, Entity entity, String identifier, Float value) {
-        EntityUtils.sendFloatProperty(player, entity.getEntityId(), identifier, value);
+        EntityUtils.sendProperty(player, entity.getEntityId(), identifier, value);
     }
 
     public static void sendFloatProperties(Player player, Entity entity, Map<String, Float> bundle) {
-        EntityUtils.sendFloatProperties(player, entity.getEntityId(), bundle);
+        EntityUtils.sendProperties(player, entity.getEntityId(), bundle);
     }
 
     public static void sendIntProperty(Player player, Entity entity, String identifier, Integer value) {
-        EntityUtils.sendIntProperty(player, entity.getEntityId(), identifier, value);
+        EntityUtils.sendProperty(player, entity.getEntityId(), identifier, value);
     }
 
     public static void sendIntProperties(Player player, Entity entity, Map<String, Integer> bundle) {
-        EntityUtils.sendIntProperties(player, entity.getEntityId(), bundle);
+        EntityUtils.sendProperties(player, entity.getEntityId(), bundle);
     }
 }

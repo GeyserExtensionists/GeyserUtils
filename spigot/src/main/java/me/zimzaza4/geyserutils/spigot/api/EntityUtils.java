@@ -50,73 +50,22 @@ public class EntityUtils {
     // so I didn't think too much about it
 
     public static void registerProperty(Player player, int id, String identifier, Class<?> type) {
-        EntityPropertyRegisterPacket packet = new EntityPropertyRegisterPacket();
-        packet.setEntityId(id);
-        packet.setIdentifier(identifier);
-        packet.setType(type);
-        GeyserUtils.sendPacket(player, packet);
+        GeyserUtils.sendPacket(player, new EntityPropertyRegisterPacket(
+                id,
+                identifier,
+                type
+        ));
     }
 
-    public static void sendBoolProperty(Player player, int id, String identifier, Boolean value) {
-        EntityPropertyPacket<Boolean> packet = new EntityPropertyPacket<>();
-        packet.setEntityId(id);
-        packet.setIdentifier(identifier);
-        packet.setValue(value);
-        GeyserUtils.sendPacket(player, packet);
+    public static <T> void sendProperty(Player player, int id, String identifier, T value) {
+        GeyserUtils.sendPacket(player, new EntityPropertyPacket<>(
+                id,
+                identifier,
+                value
+        ));
     }
 
-    public static void sendBoolProperties(Player player, int id, Map<String, Boolean> bundle) {
-        BundlePacket packet = new BundlePacket();
-        bundle.forEach((identifier, value) -> {
-            EntityPropertyPacket<Boolean> propertyPacket = new EntityPropertyPacket<>();
-            propertyPacket.setEntityId(id);
-            propertyPacket.setIdentifier(identifier);
-            propertyPacket.setValue(value);
-            packet.addPacket(propertyPacket);
-        });
-
-        GeyserUtils.sendPacket(player, packet);
-    }
-
-    public static void sendFloatProperty(Player player, int id, String identifier, Float value) {
-        EntityPropertyPacket<Float> packet = new EntityPropertyPacket<>();
-        packet.setEntityId(id);
-        packet.setIdentifier(identifier);
-        packet.setValue(value);
-        GeyserUtils.sendPacket(player, packet);
-    }
-
-    public static void sendFloatProperties(Player player, int id, Map<String, Float> bundle) {
-        BundlePacket packet = new BundlePacket();
-        bundle.forEach((identifier, value) -> {
-            EntityPropertyPacket<Float> propertyPacket = new EntityPropertyPacket<>();
-            propertyPacket.setEntityId(id);
-            propertyPacket.setIdentifier(identifier);
-            propertyPacket.setValue(value);
-            packet.addPacket(propertyPacket);
-        });
-
-        GeyserUtils.sendPacket(player, packet);
-    }
-
-    public static void sendIntProperty(Player player, int id, String identifier, Integer value) {
-        EntityPropertyPacket<Integer> packet = new EntityPropertyPacket<>();
-        packet.setEntityId(id);
-        packet.setIdentifier(identifier);
-        packet.setValue(value);
-        GeyserUtils.sendPacket(player, packet);
-    }
-
-    public static void sendIntProperties(Player player, int id, Map<String, Integer> bundle) {
-        BundlePacket packet = new BundlePacket();
-        bundle.forEach((identifier, value) -> {
-            EntityPropertyPacket<Integer> propertyPacket = new EntityPropertyPacket<>();
-            propertyPacket.setEntityId(id);
-            propertyPacket.setIdentifier(identifier);
-            propertyPacket.setValue(value);
-            packet.addPacket(propertyPacket);
-        });
-
-        GeyserUtils.sendPacket(player, packet);
+    public static <T> void sendProperties(Player player, int id, Map<String, T> bundle) {
+        GeyserUtils.sendPacket(player, BundlePacket.create(bundle));
     }
 }

@@ -1,20 +1,25 @@
 package me.zimzaza4.geyserutils.common.camera.data;
 
-import lombok.Builder;
-import lombok.Getter;
-import me.zimzaza4.geyserutils.common.util.Pos;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.jetbrains.annotations.Nullable;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import me.zimzaza4.geyserutils.common.util.Pos;
+
 @Getter
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class CameraPreset {
+
     private static final Map<String, CameraPreset> PRESETS = new TreeMap<>();
     public static CameraPreset FIRST_PERSON;
     public static CameraPreset FREE;
     public static CameraPreset THIRD_PERSON;
     public static CameraPreset THIRD_PERSON_FRONT;
+
     private String identifier;
     @Getter
     private String inheritFrom;
@@ -26,15 +31,13 @@ public class CameraPreset {
     private Rot rot;
     @Getter
     private int id;
+
     @Builder
     public CameraPreset(String identifier, String inheritFrom, @Nullable Pos pos, @Nullable Rot rot) {
         this.identifier = identifier;
         this.inheritFrom = inheritFrom != null ? inheritFrom : "";
         this.pos = pos;
         this.rot = rot;
-    }
-    protected CameraPreset() {
-
     }
 
     public static Map<String, CameraPreset> getPresets() {

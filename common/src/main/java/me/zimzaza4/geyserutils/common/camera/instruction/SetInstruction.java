@@ -1,8 +1,6 @@
 package me.zimzaza4.geyserutils.common.camera.instruction;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.camera.data.Ease;
 import me.zimzaza4.geyserutils.common.camera.data.Rot;
@@ -12,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 @AllArgsConstructor
 @Builder
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SetInstruction implements Instruction {
 
     @Nullable
@@ -26,6 +25,4 @@ public class SetInstruction implements Instruction {
     @Nullable
     private FadeInstruction fade;
 
-    protected SetInstruction() {
-    }
 }

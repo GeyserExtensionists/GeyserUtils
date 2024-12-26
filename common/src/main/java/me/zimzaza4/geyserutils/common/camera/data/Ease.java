@@ -9,8 +9,8 @@ import lombok.experimental.Accessors;
 @Data
 public class Ease {
 
-    float time;
-    int easeType;
+    private float time;
+    private int easeType;
 
     public Ease(float time, EaseType easeType) {
         this.time = time;

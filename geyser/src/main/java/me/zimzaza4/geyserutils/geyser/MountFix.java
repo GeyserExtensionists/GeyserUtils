@@ -33,8 +33,6 @@ public class MountFix {
                         }
                     }
                 }, 2000, 80, TimeUnit.MILLISECONDS);
-
-
     }
 
 }

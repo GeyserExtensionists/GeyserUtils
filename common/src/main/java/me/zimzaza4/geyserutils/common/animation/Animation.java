@@ -6,6 +6,7 @@ import lombok.Getter;
 @Builder
 @Getter
 public class Animation {
+
     public static final float DEFAULT_BLEND_OUT_TIME = 0.0f;
     public static final String DEFAULT_STOP_EXPRESSION = "query.any_animation_finished";
     public static final String DEFAULT_CONTROLLER = "__runtime_controller";
@@ -23,4 +24,5 @@ public class Animation {
     private String controller = DEFAULT_CONTROLLER;
     @Builder.Default
     private int stopExpressionVersion = DEFAULT_STOP_EXPRESSION_VERSION;
+
 }

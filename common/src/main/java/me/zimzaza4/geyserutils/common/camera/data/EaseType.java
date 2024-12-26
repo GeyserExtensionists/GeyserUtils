@@ -1,8 +1,10 @@
 package me.zimzaza4.geyserutils.common.camera.data;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 @Getter
+@RequiredArgsConstructor
 public enum EaseType {
     LINEAR("linear", 0),
     SPRING("spring", 1),
@@ -40,10 +42,5 @@ public enum EaseType {
 
     private final String type;
     private final int index;
-
-    EaseType(String type, int index) {
-        this.type = type;
-        this.index = index;
-    }
 
 }

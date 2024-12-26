@@ -10,6 +10,7 @@ import java.util.List;
 @Setter
 @Getter
 public class AnimateEntityCustomPayloadPacket extends CustomPayloadPacket {
+
     private String animation;
     private String nextState;
     private String stopExpression;
@@ -18,13 +19,13 @@ public class AnimateEntityCustomPayloadPacket extends CustomPayloadPacket {
     private float blendOutTime;
     private List<Integer> entityJavaIds = new ArrayList<>();
 
-    public void parseFromAnimation(Animation ani) {
-        this.animation = ani.getAnimation();
-        this.nextState = ani.getNextState();
-        this.blendOutTime = ani.getBlendOutTime();
-        this.stopExpression = ani.getStopExpression();
-        this.controller = ani.getController();
-        this.stopExpressionVersion = ani.getStopExpressionVersion();
+    public void parseFromAnimation(Animation animation) {
+        this.animation = animation.getAnimation();
+        this.nextState = animation.getNextState();
+        this.blendOutTime = animation.getBlendOutTime();
+        this.stopExpression = animation.getStopExpression();
+        this.controller = animation.getController();
+        this.stopExpressionVersion = animation.getStopExpressionVersion();
     }
 
 }

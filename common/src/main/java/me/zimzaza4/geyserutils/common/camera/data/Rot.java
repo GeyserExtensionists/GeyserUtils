@@ -10,6 +10,8 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Data
 public class Rot {
-    float x;
-    float y;
+
+    private float x;
+    private float y;
+
 }
