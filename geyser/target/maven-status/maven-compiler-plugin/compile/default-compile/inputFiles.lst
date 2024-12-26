@@ -1,0 +1,11 @@
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/MountFix.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/camera/CameraPresetDefinition.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/form/NpcDialogueForm.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/form/NpcDialogueForms.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/form/element/Button.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/replace/JavaAddEntityTranslatorReplace.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/translator/NPCFormResponseTranslator.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/util/Converter.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/util/DeltaUtils.java
+/Users/rochblondiaux/Development/Perso/GeyserUtils/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/util/ReflectionUtils.java

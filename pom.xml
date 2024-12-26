@@ -3,11 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>me.zimzaza4</groupId>
     <artifactId>GeyserUtils</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <!-- modules -->
     <modules>
         <module>common</module>
         <module>geyser</module>
@@ -16,10 +17,66 @@
         <module>bungee</module>
     </modules>
 
+    <!-- properties -->
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <!-- project related -->
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- plugins -->
+        <shade.plugin.version>3.6.0</shade.plugin.version>
+        <compiler.plugin.version>3.13.0</compiler.plugin.version>
+
+        <!-- dependencies -->
+        <jackson.version>2.18.2</jackson.version>
+        <velocity.version>3.4.0-SNAPSHOT</velocity.version>
+        <paper.version>1.12.2-R0.1-SNAPSHOT</paper.version>
+        <floodgate.version>2.2.0-SNAPSHOT</floodgate.version>
+        <geyser.version>2.6.0-SNAPSHOT</geyser.version>
+        <bungeecord.version>1.20-R0.3-SNAPSHOT</bungeecord.version>
     </properties>
+
+    <!-- developers -->
+    <developers>
+        <!-- kiwix -->
+        <developer>
+            <id>kiwix</id>
+            <name>Roch Blondiaux</name>
+            <email>roch.blondiaux@pm.me</email>
+            <timezone>UTC+1</timezone>
+        </developer>
+    </developers>
+
+    <!-- repositories -->
+    <repositories>
+        <!-- papermc -->
+        <repository>
+            <id>papermc-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <!-- opencollab -->
+        <repository>
+            <id>opencollab-snapshot</id>
+            <url>https://repo.opencollab.dev/main/</url>
+        </repository>
+    </repositories>
+
+    <!-- dependencies -->
+    <dependencies>
+        <!-- projectlombok/lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.36</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- jetbrains/annotations -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>26.0.1</version>
+        </dependency>
+
+    </dependencies>
 
 </project>
