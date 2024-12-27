@@ -84,6 +84,7 @@ public class GeyserUtils implements Extension {
 
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private static final Map<String, List<Map.Entry<String, Class<?>>>> properties = new HashMap<>();
+    private static final List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
     @Getter
     public static PacketManager packetManager = new PacketManager();
     public static List<String> REGISTERED_ENTITIES = new ArrayList<>();
@@ -91,11 +92,10 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<String, SkinData> LOADED_SKIN_DATA = new HashMap<>();
     @Getter
-    public static Map<String, EntityDefinition> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
+    public static Map<String, EntityDefinition<?>> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
-    private static final List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
     @Getter
     private static GeyserUtils instance;
 
@@ -144,10 +144,11 @@ public class GeyserUtils implements Extension {
     }
 
     public static void registerPropertiesForGeyser(String entityId) {
-
         GeyserEntityProperties entityProperties = getProperties(entityId);
         if (entityProperties == null) return;
-        properties.values().stream()
+
+        properties.values()
+                .stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
                 .forEach(id -> Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id)));
@@ -156,24 +157,21 @@ public class GeyserUtils implements Extension {
         Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
 
         EntityDefinition old = LOADED_ENTITY_DEFINITIONS.get(entityId);
-        LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
-                old.width(), old.height(), old.offset(), entityProperties, old.translators()));
+        LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition<>(
+                old.factory(),
+                old.entityType(),
+                old.identifier(),
+                old.width(),
+                old.height(),
+                old.offset(),
+                entityProperties,
+                old.translators()
+        ));
 
-        instance.logger().info("Defined entity: " + entityId + " in registry.");
+        instance.logger().debug("Defined entity: " + entityId + " in registry.");
     }
 
     public static void addCustomEntity(String id) {
-        /*
-        LOADED_ENTITY_DEFINITIONS.put(id,
-                EntityDefinition.builder()
-                        .identifier(EntityIdentifier.builder().identifier(id)
-                                .summonable(true)
-                                .spawnEgg(false).build())
-                        .height(0.6f)
-                        .width(0.6f)
-                        .build());
-
-         */
         if (GEYSER_LOADED) {
             registerEntityToGeyser(id);
         }
@@ -233,15 +231,16 @@ public class GeyserUtils implements Extension {
             playerAddPacket.setAction(PlayerListPacket.Action.ADD);
             playerAddPacket.getEntries().add(updatedEntry);
             session.sendUpstreamPacket(playerAddPacket);
-        } else {
-            PlayerSkinPacket packet = new PlayerSkinPacket();
-            packet.setUuid(entity.getUuid());
-            packet.setOldSkinName("");
-            packet.setNewSkinName(skin.textureUrl());
-            packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
-            packet.setTrustedSkin(true);
-            session.sendUpstreamPacket(packet);
+            return;
         }
+
+        PlayerSkinPacket packet = new PlayerSkinPacket();
+        packet.setUuid(entity.getUuid());
+        packet.setOldSkinName("");
+        packet.setNewSkinName(skin.textureUrl());
+        packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
+        packet.setTrustedSkin(true);
+        session.sendUpstreamPacket(packet);
     }
 
     public static PlayerListPacket.Entry buildEntryManually(GeyserSession session, UUID uuid, String username, long geyserId,
@@ -275,12 +274,25 @@ public class GeyserUtils implements Extension {
     }
 
     private static SerializedSkin getSkin(String skinId, Skin skin, Cape cape, SkinGeometry geometry) {
-
-        try {
-            ImageData image = ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.skinData())));
-            return SerializedSkin.of(skinId, "", geometry.geometryName(), image, Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
+        try (ByteArrayInputStream stream = new ByteArrayInputStream(skin.skinData())) {
+            ImageData image = ImageData.from(ImageIO.read(stream));
+            return SerializedSkin.of(
+                    skinId,
+                    "",
+                    geometry.geometryName(),
+                    image,
+                    Collections.emptyList(),
+                    ImageData.of(cape.capeData()),
+                    geometry.geometryData(),
+                    "",
+                    true,
+                    false,
+                    false,
+                    cape.capeId(),
+                    skinId
+            );
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to read skin data", e);
         }
     }
 
@@ -360,30 +372,33 @@ public class GeyserUtils implements Extension {
     }
 
     public void loadSkins() {
+        // Clear the loaded skins
         LOADED_SKIN_DATA.clear();
+
+        // Load the skins from the skins folder
         File folder = this.dataFolder().resolve("skins").toFile();
         if (!folder.exists()) {
             folder.mkdirs();
         }
         for (File file : folder.listFiles()) {
-            if (file.isDirectory()) {
-                File textureFile = null;
-                File geometryFile = null;
+            if (!file.isDirectory())
+                continue;
 
-                for (File folderFile : file.listFiles()) {
-                    if (folderFile.getName().endsWith(".png")) {
-                        textureFile = folderFile;
-                    }
-                    if (folderFile.getName().endsWith(".json")) {
-                        geometryFile = folderFile;
-                    }
+            File textureFile = null;
+            File geometryFile = null;
 
+            for (File folderFile : file.listFiles()) {
+                if (folderFile.getName().endsWith(".png")) {
+                    textureFile = folderFile;
+                }
+                if (folderFile.getName().endsWith(".json")) {
+                    geometryFile = folderFile;
                 }
 
-                loadSkin(file.getName(), geometryFile, textureFile);
-
-
             }
+
+            // Load the skin
+            loadSkin(file.getName(), geometryFile, textureFile);
         }
     }
 
@@ -402,9 +417,9 @@ public class GeyserUtils implements Extension {
             String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
             SkinGeometry geometry = new SkinGeometry(geoName, Files.readString(geometryFile.toPath()));
             LOADED_SKIN_DATA.put(skinId, new SkinData(skin, getEmptyCapeData(), geometry));
-            this.logger().info("Loaded skin: " + skinId + "| geo:" + geoName);
+            this.logger().debug("Loaded skin: " + skinId + "| geo:" + geoName);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to load skin", e);
         }
     }
 
@@ -422,7 +437,6 @@ public class GeyserUtils implements Extension {
     }
 
     public void registerPacketListener(GeyserSession session) {
-
         scheduler.schedule(() -> {
             if (session.getDownstream() == null) {
                 registerPacketListener(session);
@@ -434,23 +448,23 @@ public class GeyserUtils implements Extension {
                 @Override
                 public void packetSending(PacketSendingEvent event) {
                     Packet packet = event.getPacket();
-                    if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
-                        if (ReflectionUtils.getChannel(payloadPacket).toString().equals("minecraft:register")) {
-                            String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
-                            channels = channels + "\0" + GeyserUtilsChannels.MAIN;
-                            event.setPacket(ReflectionUtils.buildServerboundPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
-                        }
-                    }
+                    if (!(packet instanceof ServerboundCustomPayloadPacket payloadPacket)
+                        || !ReflectionUtils.getChannel(payloadPacket).toString().equals("minecraft:register"))
+                        return;
+
+                    String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
+                    channels = channels + "\0" + GeyserUtilsChannels.MAIN;
+                    event.setPacket(ReflectionUtils.buildServerboundPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
                 }
 
                 @Override
                 public void packetReceived(Session tcpSession, Packet packet) {
-                    if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                        if (ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN)) {
-                            CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
-                            handleCustomPacket(session, customPacket);
-                        }
-                    }
+                    if (!(packet instanceof ClientboundCustomPayloadPacket payloadPacket)
+                        || ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN))
+                        return;
+
+                    CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
+                    handleCustomPacket(session, customPacket);
                 }
             });
         }, 80, TimeUnit.MILLISECONDS);
@@ -462,7 +476,6 @@ public class GeyserUtils implements Extension {
         } else if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
             session.camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
         } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket formData) {
-
             if (formData.action().equals("CLOSE")) {
                 NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
                 if (openForm != null) {
@@ -485,11 +498,8 @@ public class GeyserUtils implements Extension {
             List<Button> buttons = new ArrayList<>();
 
             if (formData.buttons() != null) {
-
                 int i = 0;
                 for (NpcDialogueButton button : formData.buttons()) {
-
-
                     int finalI = i;
                     buttons.add(new Button(
                             button.text(),
@@ -513,24 +523,23 @@ public class GeyserUtils implements Extension {
             AnimateEntityPacket animateEntityPacket = getAnimateEntityPacket(animateEntityCustomPayloadPacket);
             for (int id : animateEntityCustomPayloadPacket.getEntityJavaIds()) {
                 Entity entity = session.getEntityCache().getEntityByJavaId(id);
-                if (entity != null) {
+                if (entity == null)
+                    continue;
+
                     try {
                         // because of shaded jar
                         Object object = AnimateEntityPacket.class.getMethod("getRuntimeEntityIds").invoke(animateEntityPacket);
                         object.getClass().getMethod("add", Long.class).invoke(object, entity.getGeyserId());
 
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        throw new RuntimeException("Failed to animate entity", e);
                     }
-                }
             }
             session.sendUpstreamPacket(animateEntityPacket);
         } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.CustomEntityPacket customEntityPacket) {
             if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
-                // System.out.println("Not a vaild entity:" + customEntityPacket.getEntityId());
                 return;
             }
-            // System.out.println("custom entity:" + customEntityPacket.getEntityId());
 
             Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
             cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
@@ -538,13 +547,11 @@ public class GeyserUtils implements Extension {
             if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
                 session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
                 session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
-
             } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
                 session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
             } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
                 session.camera().clearCameraInstructions();
             }
-
         } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
             SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
             spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session));
@@ -575,13 +582,14 @@ public class GeyserUtils implements Extension {
                     entity.getDirtyMetadata().put(EntityDataTypes.VARIANT, customEntityDataPacket.getVariant());
                 entity.updateBedrockMetadata();
             }
-        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyPacket entityPropertyPacket) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyPacket<?> entityPropertyPacket) {
             Entity entity = session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId());
             if (entity != null) {
                 if (entityPropertyPacket.getIdentifier() == null
-                    || entityPropertyPacket.getValue() == null) return;
+                    || entityPropertyPacket.getValue() == null
+                    || entity.getPropertyManager() == null)
+                    return;
 
-                if (entity.getPropertyManager() == null) return;
                 if (entityPropertyPacket.getValue() instanceof Boolean value) {
                     entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
                 } else if (entityPropertyPacket.getValue() instanceof Integer value) {
@@ -594,19 +602,17 @@ public class GeyserUtils implements Extension {
                 || entityPropertyRegisterPacket.getType() == null) return;
 
             Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyRegisterPacket.getEntityId()));
-            if (entity != null) {
-                String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
-                if (def == null) return;
+            if (entity == null)
+                return;
 
-                if (!containsProperty(def, entityPropertyRegisterPacket.getIdentifier())) {
-                    addProperty(def, entityPropertyRegisterPacket.getIdentifier(), entityPropertyRegisterPacket.getType());
+            String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
+            if (def == null || containsProperty(def, entityPropertyRegisterPacket.getIdentifier()))
+                return;
 
-                    registerProperties(def);
-                    logger().info("DEF PROPERTIES: " + entityPropertyRegisterPacket.getIdentifier());
-                }
-            }
+            addProperty(def, entityPropertyRegisterPacket.getIdentifier(), entityPropertyRegisterPacket.getType());
 
-
+            registerProperties(def);
+            logger().debug("DEF PROPERTIES: " + entityPropertyRegisterPacket.getIdentifier());
         }
     }
 

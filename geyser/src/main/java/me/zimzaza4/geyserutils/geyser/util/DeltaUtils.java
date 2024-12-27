@@ -1,6 +1,7 @@
 package me.zimzaza4.geyserutils.geyser.util;
 
 public class DeltaUtils {
+
     public static double calculateDeltaE(double[] lab1, double[] lab2) {
         // CIEDE2000 algorithm implementation
         double deltaL = lab2[0] - lab1[0];
