@@ -46,16 +46,7 @@ public class NpcDialogueForm {
             return;
 
         // Create and send packet
-        GeyserUtils.sendPacket(player, new NpcDialogueFormDataCustomPayloadPacket(
-                null,
-                null,
-                null,
-                null,
-                -1,
-                null,
-                "CLOSE",
-                false
-        ));
+        GeyserUtils.closeForm(player);
     }
 
     public void send(FloodgatePlayer floodgatePlayer) {
