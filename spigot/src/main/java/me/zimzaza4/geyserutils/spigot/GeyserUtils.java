@@ -41,16 +41,22 @@ public final class GeyserUtils extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        packetManager = new PacketManager();
-        Messenger messenger = this.getServer().getMessenger();
 
+        // Packet manager
+        packetManager = new PacketManager();
+
+        // Load camera presets
         CameraPreset.load();
+
+        // Register the plugin channels
+        Messenger messenger = this.getServer().getMessenger();
         messenger.registerOutgoingPluginChannel(this, GeyserUtilsChannels.MAIN);
         messenger.registerIncomingPluginChannel(this, GeyserUtilsChannels.MAIN, new IncomingMessageListener());
     }
 
     @Override
     public void onDisable() {
+        // Unregister the plugin channels
         Bukkit.getMessenger().unregisterIncomingPluginChannel(this, GeyserUtilsChannels.MAIN);
         Bukkit.getMessenger().unregisterOutgoingPluginChannel(this, GeyserUtilsChannels.MAIN);
     }
