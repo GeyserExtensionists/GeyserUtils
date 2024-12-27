@@ -10,7 +10,9 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Data
 public class Time {
-    float fadeIn;
-    float hold;
-    float fadeOut;
+
+    private float fadeIn;
+    private float hold;
+    private float fadeOut;
+
 }

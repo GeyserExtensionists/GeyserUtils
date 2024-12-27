@@ -1,6 +1,7 @@
 package me.zimzaza4.geyserutils.geyser.util;
 
 public class DeltaUtils {
+
     public static double calculateDeltaE(double[] lab1, double[] lab2) {
         // CIEDE2000 algorithm implementation
         double deltaL = lab2[0] - lab1[0];
@@ -67,7 +68,7 @@ public class DeltaUtils {
     }
 
     private static double[] xyzToLab(double x, double y, double z) {
-        double ref_X =  95.047;
+        double ref_X = 95.047;
         double ref_Y = 100.000;
         double ref_Z = 108.883;
 
@@ -75,11 +76,11 @@ public class DeltaUtils {
         double var_Y = y / ref_Y;
         double var_Z = z / ref_Z;
 
-        if (var_X > 0.008856) var_X = Math.pow(var_X, 1.0/3.0);
+        if (var_X > 0.008856) var_X = Math.pow(var_X, 1.0 / 3.0);
         else var_X = (7.787 * var_X) + (16.0 / 116.0);
-        if (var_Y > 0.008856) var_Y = Math.pow(var_Y, 1.0/3.0);
+        if (var_Y > 0.008856) var_Y = Math.pow(var_Y, 1.0 / 3.0);
         else var_Y = (7.787 * var_Y) + (16.0 / 116.0);
-        if (var_Z > 0.008856) var_Z = Math.pow(var_Z, 1.0/3.0);
+        if (var_Z > 0.008856) var_Z = Math.pow(var_Z, 1.0 / 3.0);
         else var_Z = (7.787 * var_Z) + (16.0 / 116.0);
 
         double l = (116.0 * var_Y) - 16.0;

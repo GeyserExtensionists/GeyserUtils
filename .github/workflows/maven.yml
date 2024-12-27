@@ -19,12 +19,12 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
-          
+
       # Build
       - name: Build with Maven
         run: mvn -B package --file pom.xml
-    
-        
+
+
       - name: Auto release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:

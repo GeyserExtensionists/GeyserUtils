@@ -9,11 +9,9 @@ public final class GeyserUtils extends Plugin {
     public void onEnable() {
         ProxyServer.getInstance()
                 .registerChannel("geyserutils:main");
-        // Plugin startup logic
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
     }
 }

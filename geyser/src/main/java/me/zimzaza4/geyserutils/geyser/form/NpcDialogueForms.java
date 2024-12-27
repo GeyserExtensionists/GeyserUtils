@@ -1,11 +1,8 @@
 package me.zimzaza4.geyserutils.geyser.form;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.geysermc.geyser.session.GeyserSession;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class NpcDialogueForms {

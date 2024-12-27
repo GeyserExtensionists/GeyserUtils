@@ -1,0 +1,3 @@
+name: GeyserUtils
+version: '1.0-SNAPSHOT'
+main: me.zimzaza4.geyserutils.bungee.GeyserUtils

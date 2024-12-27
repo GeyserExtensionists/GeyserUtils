@@ -1,14 +1,17 @@
 package me.zimzaza4.geyserutils.spigot;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.messaging.Messenger;
+
 import lombok.Getter;
 import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
-import me.zimzaza4.geyserutils.spigot.api.form.NpcDialogueForm;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.messaging.Messenger;
+import me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket;
+import me.zimzaza4.geyserutils.spigot.listener.IncomingMessageListener;
 
 public final class GeyserUtils extends JavaPlugin {
 
@@ -17,46 +20,44 @@ public final class GeyserUtils extends JavaPlugin {
 
     @Getter
     private static PacketManager packetManager;
+
+    public static void sendPacket(Player player, CustomPayloadPacket packet) {
+        player.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(packet));
+    }
+
+    public static void closeForm(Player player) {
+        GeyserUtils.sendPacket(player, new NpcDialogueFormDataCustomPayloadPacket(
+                null,
+                null,
+                null,
+                null,
+                -1,
+                null,
+                "CLOSE",
+                false
+        ));
+    }
+
     @Override
     public void onEnable() {
-        // Plugin startup logic
         instance = this;
+
+        // Packet manager
         packetManager = new PacketManager();
-        Messenger messenger = this.getServer().getMessenger();
 
+        // Load camera presets
         CameraPreset.load();
+
+        // Register the plugin channels
+        Messenger messenger = this.getServer().getMessenger();
         messenger.registerOutgoingPluginChannel(this, GeyserUtilsChannels.MAIN);
-        messenger.registerIncomingPluginChannel(this, GeyserUtilsChannels.MAIN, (channel, player, message) -> {
-            if (channel.equals(GeyserUtilsChannels.MAIN)) {
-                CustomPayloadPacket packet = packetManager.decodePacket(message);
-                if (packet instanceof NpcFormResponseCustomPayloadPacket) {
-                    NpcFormResponseCustomPayloadPacket response = (NpcFormResponseCustomPayloadPacket) packet;
-                    if (NpcDialogueForm.FORMS.containsKey(response.getFormId())) {
-
-                        NpcDialogueForm form = NpcDialogueForm.FORMS.get(response.getFormId());
-
-                        if (form.handler() != null) {
-                            if (response.getButtonId() != -1) {
-                                form.handler().accept(response.getFormId(), response.getButtonId());
-                            }
-                        }
-                        if (response.getButtonId() == -1) {
-                            if (form.closeHandler() != null) {
-                                form.closeHandler().accept(response.getFormId());
-                            }
-                            NpcDialogueForm.FORMS.remove(response.getFormId());
-                        }
-
-
-                    }
-                }
-            }
-        });
+        messenger.registerIncomingPluginChannel(this, GeyserUtilsChannels.MAIN, new IncomingMessageListener());
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        // Unregister the plugin channels
+        Bukkit.getMessenger().unregisterIncomingPluginChannel(this, GeyserUtilsChannels.MAIN);
+        Bukkit.getMessenger().unregisterOutgoingPluginChannel(this, GeyserUtilsChannels.MAIN);
     }
-
 }

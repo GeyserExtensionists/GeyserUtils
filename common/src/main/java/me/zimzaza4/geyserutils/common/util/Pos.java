@@ -10,7 +10,8 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Data
 public class Pos {
-    float x;
-    float y;
-    float z;
+
+    private float x;
+    private float y;
+    private float z;
 }

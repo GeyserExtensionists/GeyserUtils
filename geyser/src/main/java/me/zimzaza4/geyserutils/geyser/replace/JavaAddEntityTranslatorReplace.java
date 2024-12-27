@@ -49,7 +49,8 @@ import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIO
 
 public class JavaAddEntityTranslatorReplace extends PacketTranslator<ClientboundAddEntityPacket> {
     @Override
-    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) { EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
+    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) {
+        EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
         if (definition == null) {
             session.getGeyser().getLogger().debug("Could not find an entity definition with type " + packet.getType());
             return;

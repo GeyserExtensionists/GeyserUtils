@@ -1,26 +1,19 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import lombok.Getter;
-import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
-import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
-import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
-import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
-import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
-import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
-import me.zimzaza4.geyserutils.common.manager.PacketManager;
-import me.zimzaza4.geyserutils.common.packet.*;
-import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
-import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
-import me.zimzaza4.geyserutils.geyser.form.element.Button;
-import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
-import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
-import me.zimzaza4.geyserutils.geyser.util.Converter;
-import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
-import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
@@ -56,70 +49,58 @@ import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.Serverbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.jetbrains.annotations.NotNull;
 
-import javax.imageio.ImageIO;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import lombok.Getter;
+import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
+import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
+import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
+import me.zimzaza4.geyserutils.common.form.NpcDialogueButton;
+import me.zimzaza4.geyserutils.common.manager.PacketManager;
+import me.zimzaza4.geyserutils.common.packet.BundlePacket;
+import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.CustomSkinPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.camera.CameraShakeCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyRegisterPacket;
+import me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket;
+import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
+import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
+import me.zimzaza4.geyserutils.geyser.form.element.Button;
+import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
+import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
+import me.zimzaza4.geyserutils.geyser.util.Converter;
+import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
+import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
 
 public class GeyserUtils implements Extension {
 
 
+    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private static final Map<String, List<Map.Entry<String, Class<?>>>> properties = new HashMap<>();
+    private static final List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
     @Getter
     public static PacketManager packetManager = new PacketManager();
-
     public static List<String> REGISTERED_ENTITIES = new ArrayList<>();
-    private static List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
-
-
     public static boolean GEYSER_LOADED = false;
-
     @Getter
     public static Map<String, SkinData> LOADED_SKIN_DATA = new HashMap<>();
-
     @Getter
-    public static Map<String, EntityDefinition> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
-
+    public static Map<String, EntityDefinition<?>> LOADED_ENTITY_DEFINITIONS = new HashMap<>();
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
-
     static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
-
-    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-
-    private static final Map<String, List<Map.Entry<String, Class<?>>>> properties = new HashMap<>();
-
     @Getter
     private static GeyserUtils instance;
 
     public GeyserUtils() {
         instance = this;
-    }
-
-    @Subscribe
-    public void onEnable(GeyserPostInitializeEvent event) {
-        Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
-        loadSkins();
-        ReflectionUtils.init();
-        CameraPreset.load();
-
-        replaceTranslator();
-        GEYSER_LOADED = true;
-        for (String registeredEntity : REGISTERED_ENTITIES) {
-            registerEntityToGeyser(registeredEntity);
-        }
-        for (String id : ENTITIES_WAIT_FOR_LOAD) {
-            registerPropertiesForGeyser(id);
-        }
-        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
-        MountFix.start();
     }
 
     // the static here is crazy ;(
@@ -162,44 +143,41 @@ public class GeyserUtils implements Extension {
         ENTITIES_WAIT_FOR_LOAD.add(entityId);
     }
 
-    public static void  registerPropertiesForGeyser(String entityId) {
-
+    public static void registerPropertiesForGeyser(String entityId) {
         GeyserEntityProperties entityProperties = getProperties(entityId);
         if (entityProperties == null) return;
-        properties.values().stream()
+
+        properties.values()
+                .stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
-                .forEach(id -> {
-                    Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id));
-                });
+                .forEach(id -> Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id)));
 
 
         Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
 
         EntityDefinition old = LOADED_ENTITY_DEFINITIONS.get(entityId);
-        LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
-                old.width(), old.height(), old.offset(), entityProperties, old.translators()));
+        LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition<>(
+                old.factory(),
+                old.entityType(),
+                old.identifier(),
+                old.width(),
+                old.height(),
+                old.offset(),
+                entityProperties,
+                old.translators()
+        ));
 
-        instance.logger().info("Defined entity: " + entityId + " in registry.");
+        instance.logger().debug("Defined entity: " + entityId + " in registry.");
     }
 
     public static void addCustomEntity(String id) {
-        /*
-        LOADED_ENTITY_DEFINITIONS.put(id,
-                EntityDefinition.builder()
-                        .identifier(EntityIdentifier.builder().identifier(id)
-                                .summonable(true)
-                                .spawnEgg(false).build())
-                        .height(0.6f)
-                        .width(0.6f)
-                        .build());
-
-         */
         if (GEYSER_LOADED) {
             registerEntityToGeyser(id);
         }
         REGISTERED_ENTITIES.add(id);
     }
+
     public static void registerEntityToGeyser(String id) {
         NbtMap registry = Registries.BEDROCK_ENTITY_IDENTIFIERS.get();
         List<NbtMap> idList = new ArrayList<>(registry.getList("idlist", NbtType.COMPOUND));
@@ -221,268 +199,8 @@ public class GeyserUtils implements Extension {
         LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
 
-
-    public void replaceTranslator() {
-        Registries.JAVA_PACKET_TRANSLATORS
-                .register(ClientboundAddEntityPacket.class, new JavaAddEntityTranslatorReplace());
-    }
-
-    @Subscribe
-    public void onLoadCommand(GeyserDefineCommandsEvent event) {
-
-    }
-
-    public void loadSkins() {
-        LOADED_SKIN_DATA.clear();
-        File folder = this.dataFolder().resolve("skins").toFile();
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-        for (File file : folder.listFiles()) {
-            if (file.isDirectory()) {
-                File textureFile = null;
-                File geometryFile = null;
-
-                for (File folderFile : file.listFiles()) {
-                    if (folderFile.getName().endsWith(".png")) {
-                        textureFile = folderFile;
-                    }
-                    if (folderFile.getName().endsWith(".json")) {
-                        geometryFile = folderFile;
-                    }
-
-                }
-
-                loadSkin(file.getName(), geometryFile, textureFile);
-
-
-            }
-        }
-    }
-
-    public void loadSkin(String skinId, File geometryFile, File textureFile) {
-        try {
-            Skin skin = new Skin(skinId, Files.readAllBytes(textureFile.toPath()), false);
-
-            String geoId = "";
-            JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
-            for (JsonElement element : json.getAsJsonObject().get("minecraft:geometry").getAsJsonArray()) {
-                if (element.isJsonObject() && element.getAsJsonObject().has("description")) {
-                    geoId = element.getAsJsonObject().get("description").getAsJsonObject().get("identifier").getAsString();
-                    break;
-                }
-            }
-            String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
-            SkinGeometry geometry = new SkinGeometry(geoName, Files.readString(geometryFile.toPath()));
-            LOADED_SKIN_DATA.put(skinId, new SkinData(skin, getEmptyCapeData(), geometry));
-            this.logger().info("Loaded skin: " + skinId + "| geo:" + geoName);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Subscribe
-    public void onSessionJoin(SessionLoginEvent event) {
-        CUSTOM_ENTITIES.put(event.connection(), CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS).build());
-        if (event.connection() instanceof GeyserSession session) {
-            registerPacketListener(session);
-        }
-    }
-
-    @Subscribe
-    public void onSessionQuit(SessionDisconnectEvent event) {
-        CUSTOM_ENTITIES.remove(event.connection());
-    }
-
-
-
-    public void registerPacketListener(GeyserSession session) {
-
-       scheduler.schedule(() -> {
-           if (session.getDownstream() == null) {
-               registerPacketListener(session);
-               return;
-           }
-
-           session.getDownstream().getSession().addListener(new SessionAdapter() {
-
-               @Override
-               public void packetSending(PacketSendingEvent event) {
-                   Packet packet = event.getPacket();
-                   if (packet instanceof ServerboundCustomPayloadPacket payloadPacket) {
-                       if (ReflectionUtils.getChannel(payloadPacket).toString().equals("minecraft:register")) {
-                           String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
-                           channels = channels + "\0" + GeyserUtilsChannels.MAIN;
-                           event.setPacket(ReflectionUtils.buildServerboundPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
-                       }
-                   }
-               }
-
-               @Override
-               public void packetReceived(Session tcpSession, Packet packet) {
-                   if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
-                       if (ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN)) {
-                           CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
-                           handleCustomPacket(session, customPacket);
-                       }
-                   }
-               }
-           });
-       }, 80, TimeUnit.MILLISECONDS);
-    }
-
-    private void handleCustomPacket(GeyserSession session, CustomPayloadPacket customPacket) {
-        if (customPacket instanceof BundlePacket bundlePacket) {
-            bundlePacket.getPackets().forEach(p -> handleCustomPacket(session, p));
-        }
-
-        else if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
-            session.camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
-        } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
-
-            if (formData.action().equals("CLOSE")) {
-                NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
-                if (openForm != null) {
-                    openForm.close(session);
-                }
-                return;
-            }
-
-            NpcDialogueForm form = new NpcDialogueForm();
-            form.title(formData.title())
-                    .dialogue(formData.dialogue())
-                    .bindEntity(session.getEntityCache().getEntityByJavaId(formData.bindEntity()))
-                    .hasNextForm(formData.hasNextForm());
-
-            if (formData.skinData() != null) {
-                form.skinData(formData.skinData());
-            }
-
-
-            List<Button> buttons = new ArrayList<>();
-
-            if (formData.buttons() != null) {
-
-                int i = 0;
-                for (NpcDialogueButton button : formData.buttons()) {
-
-
-                    int finalI = i;
-                    buttons.add(new Button(button.text(), button.commands(),
-                            button.mode(), () -> {
-                        if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                            session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
-                        }
-                    }, button.hasNextForm()));
-                    i++;
-                }
-            }
-
-            form.closeHandler(() -> session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
-            form.buttons(buttons);
-
-            form.createAndSend(session);
-
-        } else if (customPacket instanceof AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
-            AnimateEntityPacket animateEntityPacket = getAnimateEntityPacket(animateEntityCustomPayloadPacket);
-            for (int id : animateEntityCustomPayloadPacket.getEntityJavaIds()) {
-                Entity entity = session.getEntityCache().getEntityByJavaId(id);
-                if (entity != null) {
-                    try {
-                        // because of shaded jar
-                        Object object = AnimateEntityPacket.class.getMethod("getRuntimeEntityIds").invoke(animateEntityPacket);
-                        object.getClass().getMethod("add", Long.class).invoke(object, entity.getGeyserId());
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            session.sendUpstreamPacket(animateEntityPacket);
-        } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
-            if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
-               // System.out.println("Not a vaild entity:" + customEntityPacket.getEntityId());
-                return;
-            }
-            // System.out.println("custom entity:" + customEntityPacket.getEntityId());
-
-            Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
-            cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
-        } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
-            if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
-                session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
-                session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
-
-            } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
-                session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
-            } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
-                session.camera().clearCameraInstructions();
-            }
-
-        } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
-            SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
-            spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session));
-            spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
-            spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
-            spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
-            session.sendUpstreamPacket(spawnParticleEffectPacket);
-        } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
-            if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
-                SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
-                if (data != null) {
-                    sendSkinPacket(session, player, data);
-                }
-            }
-
-        } else if (customPacket instanceof CustomEntityDataPacket customEntityDataPacket) {
-            Entity entity = session.getEntityCache().getEntityByJavaId(customEntityDataPacket.getEntityId());
-            if (entity != null) {
-                if (customEntityDataPacket.getHeight() != null) entity.setBoundingBoxHeight(customEntityDataPacket.getHeight());
-                if (customEntityDataPacket.getWidth() != null) entity.setBoundingBoxWidth(customEntityDataPacket.getWidth());
-                if (customEntityDataPacket.getScale() != null) entity.getDirtyMetadata().put(EntityDataTypes.SCALE, customEntityDataPacket.getScale());
-                if (customEntityDataPacket.getColor() != null)
-                    entity.getDirtyMetadata().put(EntityDataTypes.COLOR, Byte.parseByte(String.valueOf(getColor(customEntityDataPacket.getColor()))));
-                if (customEntityDataPacket.getVariant() != null)
-                    entity.getDirtyMetadata().put(EntityDataTypes.VARIANT, customEntityDataPacket.getVariant());
-                entity.updateBedrockMetadata();
-            }
-        } else if (customPacket instanceof EntityPropertyPacket entityPropertyPacket) {
-            Entity entity = session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId());
-            if (entity != null) {
-                if (entityPropertyPacket.getIdentifier() == null
-                        || entityPropertyPacket.getValue() == null) return;
-
-                if (entity.getPropertyManager() == null) return;
-                if (entityPropertyPacket.getValue() instanceof Boolean value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
-                } else if (entityPropertyPacket.getValue() instanceof Integer value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
-                }
-                entity.updateBedrockEntityProperties();
-            }
-        } else if (customPacket instanceof EntityPropertyRegisterPacket entityPropertyRegisterPacket) {
-            if (entityPropertyRegisterPacket.getIdentifier() == null
-                    || entityPropertyRegisterPacket.getType() == null) return;
-
-            Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyRegisterPacket.getEntityId()));
-            if (entity != null) {
-                String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
-                if (def == null) return;
-
-                if (!containsProperty(def, entityPropertyRegisterPacket.getIdentifier())) {
-                    addProperty(def, entityPropertyRegisterPacket.getIdentifier(), entityPropertyRegisterPacket.getType());
-
-                    registerProperties(def);
-                    logger().info("DEF PROPERTIES: " + entityPropertyRegisterPacket.getIdentifier());
-                }
-            }
-
-
-        }
-    }
-
     @NotNull
-    private static AnimateEntityPacket getAnimateEntityPacket(AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
+    private static AnimateEntityPacket getAnimateEntityPacket(me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
         AnimateEntityPacket animateEntityPacket = new AnimateEntityPacket();
         animateEntityPacket.setAnimation(animateEntityCustomPayloadPacket.getAnimation());
         animateEntityPacket.setController(animateEntityCustomPayloadPacket.getController());
@@ -513,15 +231,16 @@ public class GeyserUtils implements Extension {
             playerAddPacket.setAction(PlayerListPacket.Action.ADD);
             playerAddPacket.getEntries().add(updatedEntry);
             session.sendUpstreamPacket(playerAddPacket);
-        } else {
-            PlayerSkinPacket packet = new PlayerSkinPacket();
-            packet.setUuid(entity.getUuid());
-            packet.setOldSkinName("");
-            packet.setNewSkinName(skin.textureUrl());
-            packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
-            packet.setTrustedSkin(true);
-            session.sendUpstreamPacket(packet);
+            return;
         }
+
+        PlayerSkinPacket packet = new PlayerSkinPacket();
+        packet.setUuid(entity.getUuid());
+        packet.setOldSkinName("");
+        packet.setNewSkinName(skin.textureUrl());
+        packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
+        packet.setTrustedSkin(true);
+        session.sendUpstreamPacket(packet);
     }
 
     public static PlayerListPacket.Entry buildEntryManually(GeyserSession session, UUID uuid, String username, long geyserId,
@@ -554,14 +273,26 @@ public class GeyserUtils implements Extension {
         return entry;
     }
 
-
     private static SerializedSkin getSkin(String skinId, Skin skin, Cape cape, SkinGeometry geometry) {
-
-        try {
-            ImageData image = ImageData.from(ImageIO.read(new ByteArrayInputStream(skin.skinData())));
-            return SerializedSkin.of(skinId, "", geometry.geometryName(),image , Collections.emptyList(), ImageData.of(cape.capeData()), geometry.geometryData(), "", true, false, false, cape.capeId(), skinId);
+        try (ByteArrayInputStream stream = new ByteArrayInputStream(skin.skinData())) {
+            ImageData image = ImageData.from(ImageIO.read(stream));
+            return SerializedSkin.of(
+                    skinId,
+                    "",
+                    geometry.geometryName(),
+                    image,
+                    Collections.emptyList(),
+                    ImageData.of(cape.capeData()),
+                    geometry.geometryData(),
+                    "",
+                    true,
+                    false,
+                    false,
+                    cape.capeId(),
+                    skinId
+            );
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to read skin data", e);
         }
     }
 
@@ -609,6 +340,280 @@ public class GeyserUtils implements Extension {
         }
 
         return closestColorIndex;
+    }
+
+    @Subscribe
+    public void onEnable(GeyserPostInitializeEvent event) {
+        Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
+        loadSkins();
+        ReflectionUtils.init();
+        CameraPreset.load();
+
+        replaceTranslator();
+        GEYSER_LOADED = true;
+        for (String registeredEntity : REGISTERED_ENTITIES) {
+            registerEntityToGeyser(registeredEntity);
+        }
+        for (String id : ENTITIES_WAIT_FOR_LOAD) {
+            registerPropertiesForGeyser(id);
+        }
+        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
+        MountFix.start();
+    }
+
+    public void replaceTranslator() {
+        Registries.JAVA_PACKET_TRANSLATORS
+                .register(ClientboundAddEntityPacket.class, new JavaAddEntityTranslatorReplace());
+    }
+
+    @Subscribe
+    public void onLoadCommand(GeyserDefineCommandsEvent event) {
+
+    }
+
+    public void loadSkins() {
+        // Clear the loaded skins
+        LOADED_SKIN_DATA.clear();
+
+        // Load the skins from the skins folder
+        File folder = this.dataFolder().resolve("skins").toFile();
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        for (File file : folder.listFiles()) {
+            if (!file.isDirectory())
+                continue;
+
+            File textureFile = null;
+            File geometryFile = null;
+
+            for (File folderFile : file.listFiles()) {
+                if (folderFile.getName().endsWith(".png")) {
+                    textureFile = folderFile;
+                }
+                if (folderFile.getName().endsWith(".json")) {
+                    geometryFile = folderFile;
+                }
+
+            }
+
+            // Load the skin
+            loadSkin(file.getName(), geometryFile, textureFile);
+        }
+    }
+
+    public void loadSkin(String skinId, File geometryFile, File textureFile) {
+        try {
+            Skin skin = new Skin(skinId, Files.readAllBytes(textureFile.toPath()), false);
+
+            String geoId = "";
+            JsonElement json = new JsonParser().parse(new FileReader(geometryFile));
+            for (JsonElement element : json.getAsJsonObject().get("minecraft:geometry").getAsJsonArray()) {
+                if (element.isJsonObject() && element.getAsJsonObject().has("description")) {
+                    geoId = element.getAsJsonObject().get("description").getAsJsonObject().get("identifier").getAsString();
+                    break;
+                }
+            }
+            String geoName = "{\"geometry\" :{\"default\" :\"" + geoId + "\"}}";
+            SkinGeometry geometry = new SkinGeometry(geoName, Files.readString(geometryFile.toPath()));
+            LOADED_SKIN_DATA.put(skinId, new SkinData(skin, getEmptyCapeData(), geometry));
+            this.logger().debug("Loaded skin: " + skinId + "| geo:" + geoName);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load skin", e);
+        }
+    }
+
+    @Subscribe
+    public void onSessionJoin(SessionLoginEvent event) {
+        CUSTOM_ENTITIES.put(event.connection(), CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS).build());
+        if (event.connection() instanceof GeyserSession session) {
+            registerPacketListener(session);
+        }
+    }
+
+    @Subscribe
+    public void onSessionQuit(SessionDisconnectEvent event) {
+        CUSTOM_ENTITIES.remove(event.connection());
+    }
+
+    public void registerPacketListener(GeyserSession session) {
+        scheduler.schedule(() -> {
+            if (session.getDownstream() == null) {
+                registerPacketListener(session);
+                return;
+            }
+
+            session.getDownstream().getSession().addListener(new SessionAdapter() {
+
+                @Override
+                public void packetSending(PacketSendingEvent event) {
+                    Packet packet = event.getPacket();
+                    if (!(packet instanceof ServerboundCustomPayloadPacket payloadPacket)
+                        || !ReflectionUtils.getChannel(payloadPacket).toString().equals("minecraft:register"))
+                        return;
+
+                    String channels = new String(payloadPacket.getData(), StandardCharsets.UTF_8);
+                    channels = channels + "\0" + GeyserUtilsChannels.MAIN;
+                    event.setPacket(ReflectionUtils.buildServerboundPayloadPacket("minecraft:register", channels.getBytes(StandardCharsets.UTF_8)));
+                }
+
+                @Override
+                public void packetReceived(Session tcpSession, Packet packet) {
+                    if (!(packet instanceof ClientboundCustomPayloadPacket payloadPacket)
+                        || ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN))
+                        return;
+
+                    CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
+                    handleCustomPacket(session, customPacket);
+                }
+            });
+        }, 80, TimeUnit.MILLISECONDS);
+    }
+
+    private void handleCustomPacket(GeyserSession session, CustomPayloadPacket customPacket) {
+        if (customPacket instanceof BundlePacket bundlePacket) {
+            bundlePacket.getPackets().forEach(p -> handleCustomPacket(session, p));
+        } else if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
+            session.camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket formData) {
+            if (formData.action().equals("CLOSE")) {
+                NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
+                if (openForm != null) {
+                    openForm.close(session);
+                }
+                return;
+            }
+
+            NpcDialogueForm form = new NpcDialogueForm();
+            form.title(formData.title())
+                    .dialogue(formData.dialogue())
+                    .bindEntity(session.getEntityCache().getEntityByJavaId(formData.bindEntity()))
+                    .hasNextForm(formData.hasNextForm());
+
+            if (formData.skinData() != null) {
+                form.skinData(formData.skinData());
+            }
+
+
+            List<Button> buttons = new ArrayList<>();
+
+            if (formData.buttons() != null) {
+                int i = 0;
+                for (NpcDialogueButton button : formData.buttons()) {
+                    int finalI = i;
+                    buttons.add(new Button(
+                            button.text(),
+                            button.commands(),
+                            button.mode(),
+                            () -> {
+                                if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
+                                    session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                }
+                            }, button.hasNextForm()));
+                    i++;
+                }
+            }
+
+            form.closeHandler(() -> session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), -1)))));
+            form.buttons(buttons);
+
+            form.createAndSend(session);
+
+        } else if (customPacket instanceof AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
+            AnimateEntityPacket animateEntityPacket = getAnimateEntityPacket(animateEntityCustomPayloadPacket);
+            for (int id : animateEntityCustomPayloadPacket.getEntityJavaIds()) {
+                Entity entity = session.getEntityCache().getEntityByJavaId(id);
+                if (entity == null)
+                    continue;
+
+                    try {
+                        // because of shaded jar
+                        Object object = AnimateEntityPacket.class.getMethod("getRuntimeEntityIds").invoke(animateEntityPacket);
+                        object.getClass().getMethod("add", Long.class).invoke(object, entity.getGeyserId());
+
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to animate entity", e);
+                    }
+            }
+            session.sendUpstreamPacket(animateEntityPacket);
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.CustomEntityPacket customEntityPacket) {
+            if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
+                return;
+            }
+
+            Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
+            cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.camera.CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
+            if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
+                session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
+                session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
+            } else if (cameraInstructionPacket.getInstruction() instanceof FadeInstruction instruction) {
+                session.camera().sendCameraFade(Converter.serializeFadeInstruction(instruction));
+            } else if (cameraInstructionPacket.getInstruction() instanceof ClearInstruction) {
+                session.camera().clearCameraInstructions();
+            }
+        } else if (customPacket instanceof CustomParticleEffectPayloadPacket customParticleEffectPacket) {
+            SpawnParticleEffectPacket spawnParticleEffectPacket = new SpawnParticleEffectPacket();
+            spawnParticleEffectPacket.setDimensionId(DimensionUtils.javaToBedrock(session));
+            spawnParticleEffectPacket.setPosition(Converter.serializePos(customParticleEffectPacket.getPos()));
+            spawnParticleEffectPacket.setIdentifier(customParticleEffectPacket.getParticle().identifier());
+            spawnParticleEffectPacket.setMolangVariablesJson(Optional.ofNullable(customParticleEffectPacket.getParticle().molangVariablesJson()));
+            session.sendUpstreamPacket(spawnParticleEffectPacket);
+        } else if (customPacket instanceof CustomSkinPayloadPacket customSkinPayloadPacket) {
+            if (session.getEntityCache().getEntityByJavaId(customSkinPayloadPacket.getEntityId()) instanceof PlayerEntity player) {
+                SkinData data = LOADED_SKIN_DATA.get(customSkinPayloadPacket.getSkinId());
+                if (data != null) {
+                    sendSkinPacket(session, player, data);
+                }
+            }
+
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.CustomEntityDataPacket customEntityDataPacket) {
+            Entity entity = session.getEntityCache().getEntityByJavaId(customEntityDataPacket.getEntityId());
+            if (entity != null) {
+                if (customEntityDataPacket.getHeight() != null)
+                    entity.setBoundingBoxHeight(customEntityDataPacket.getHeight());
+                if (customEntityDataPacket.getWidth() != null)
+                    entity.setBoundingBoxWidth(customEntityDataPacket.getWidth());
+                if (customEntityDataPacket.getScale() != null)
+                    entity.getDirtyMetadata().put(EntityDataTypes.SCALE, customEntityDataPacket.getScale());
+                if (customEntityDataPacket.getColor() != null)
+                    entity.getDirtyMetadata().put(EntityDataTypes.COLOR, Byte.parseByte(String.valueOf(getColor(customEntityDataPacket.getColor()))));
+                if (customEntityDataPacket.getVariant() != null)
+                    entity.getDirtyMetadata().put(EntityDataTypes.VARIANT, customEntityDataPacket.getVariant());
+                entity.updateBedrockMetadata();
+            }
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyPacket<?> entityPropertyPacket) {
+            Entity entity = session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId());
+            if (entity != null) {
+                if (entityPropertyPacket.getIdentifier() == null
+                    || entityPropertyPacket.getValue() == null
+                    || entity.getPropertyManager() == null)
+                    return;
+
+                if (entityPropertyPacket.getValue() instanceof Boolean value) {
+                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                } else if (entityPropertyPacket.getValue() instanceof Integer value) {
+                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                }
+                entity.updateBedrockEntityProperties();
+            }
+        } else if (customPacket instanceof EntityPropertyRegisterPacket entityPropertyRegisterPacket) {
+            if (entityPropertyRegisterPacket.getIdentifier() == null
+                || entityPropertyRegisterPacket.getType() == null) return;
+
+            Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyRegisterPacket.getEntityId()));
+            if (entity == null)
+                return;
+
+            String def = CUSTOM_ENTITIES.get(session).getIfPresent(entity.getEntityId());
+            if (def == null || containsProperty(def, entityPropertyRegisterPacket.getIdentifier()))
+                return;
+
+            addProperty(def, entityPropertyRegisterPacket.getIdentifier(), entityPropertyRegisterPacket.getType());
+
+            registerProperties(def);
+            logger().debug("DEF PROPERTIES: " + entityPropertyRegisterPacket.getIdentifier());
+        }
     }
 
 }

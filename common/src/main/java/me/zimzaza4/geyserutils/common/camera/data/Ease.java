@@ -1,7 +1,5 @@
 package me.zimzaza4.geyserutils.common.camera.data;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -11,8 +9,8 @@ import lombok.experimental.Accessors;
 @Data
 public class Ease {
 
-    float time;
-    int easeType;
+    private float time;
+    private int easeType;
 
     public Ease(float time, EaseType easeType) {
         this.time = time;
