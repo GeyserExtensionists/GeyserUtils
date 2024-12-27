@@ -1,9 +1,10 @@
-package me.zimzaza4.geyserutils.common.packet;
+package me.zimzaza4.geyserutils.common.packet.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 
 @AllArgsConstructor
 @NoArgsConstructor

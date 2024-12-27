@@ -18,9 +18,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
-import me.zimzaza4.geyserutils.common.packet.NpcDialogueFormDataCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 
 @AllArgsConstructor

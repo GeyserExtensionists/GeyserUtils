@@ -1,8 +1,9 @@
-package me.zimzaza4.geyserutils.common.packet;
+package me.zimzaza4.geyserutils.common.packet.entity;
 
 import lombok.Getter;
 import lombok.Setter;
 import me.zimzaza4.geyserutils.common.animation.Animation;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 
 import java.util.ArrayList;
 import java.util.List;

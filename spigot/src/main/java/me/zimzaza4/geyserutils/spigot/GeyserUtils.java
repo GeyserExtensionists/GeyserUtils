@@ -5,8 +5,6 @@ import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
-import me.zimzaza4.geyserutils.spigot.api.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.spigot.listener.IncomingMessageListener;
 
 import org.bukkit.Bukkit;

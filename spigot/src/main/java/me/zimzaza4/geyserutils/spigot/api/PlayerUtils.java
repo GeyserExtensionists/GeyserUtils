@@ -2,8 +2,9 @@ package me.zimzaza4.geyserutils.spigot.api;
 
 import me.zimzaza4.geyserutils.common.animation.Animation;
 import me.zimzaza4.geyserutils.common.camera.instruction.Instruction;
-import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.packet.*;
+import me.zimzaza4.geyserutils.common.packet.camera.CameraShakeCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket;
 import me.zimzaza4.geyserutils.common.particle.CustomParticle;
 import me.zimzaza4.geyserutils.common.util.Pos;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
@@ -33,14 +34,14 @@ public class PlayerUtils {
     }
 
     public static void playEntityAnimation(Player player, Animation animation, List<Integer> entityList) {
-        AnimateEntityCustomPayloadPacket packet = new AnimateEntityCustomPayloadPacket();
+        me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket packet = new AnimateEntityCustomPayloadPacket();
         packet.parseFromAnimation(animation);
         packet.setEntityJavaIds(entityList);
         GeyserUtils.sendPacket(player, packet);
     }
 
     public static void sendCameraInstruction(Player player, Instruction instruction) {
-        GeyserUtils.sendPacket(player, new CameraInstructionCustomPayloadPacket(instruction));
+        GeyserUtils.sendPacket(player, new me.zimzaza4.geyserutils.common.packet.camera.CameraInstructionCustomPayloadPacket(instruction));
     }
 
     public static void sendCustomParticle(Player player, Location location, CustomParticle particle) {

@@ -13,6 +13,10 @@ import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.manager.PacketManager;
 import me.zimzaza4.geyserutils.common.packet.*;
+import me.zimzaza4.geyserutils.common.packet.camera.CameraShakeCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyRegisterPacket;
+import me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
@@ -194,7 +198,7 @@ public class GeyserUtils implements Extension {
     }
 
     @NotNull
-    private static AnimateEntityPacket getAnimateEntityPacket(AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
+    private static AnimateEntityPacket getAnimateEntityPacket(me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket animateEntityCustomPayloadPacket) {
         AnimateEntityPacket animateEntityPacket = new AnimateEntityPacket();
         animateEntityPacket.setAnimation(animateEntityCustomPayloadPacket.getAnimation());
         animateEntityPacket.setController(animateEntityCustomPayloadPacket.getController());
@@ -453,7 +457,7 @@ public class GeyserUtils implements Extension {
             bundlePacket.getPackets().forEach(p -> handleCustomPacket(session, p));
         } else if (customPacket instanceof CameraShakeCustomPayloadPacket cameraShakePacket) {
             session.camera().shakeCamera(cameraShakePacket.getIntensity(), cameraShakePacket.getDuration(), CameraShake.values()[cameraShakePacket.getType()]);
-        } else if (customPacket instanceof NpcDialogueFormDataCustomPayloadPacket formData) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket formData) {
 
             if (formData.action().equals("CLOSE")) {
                 NpcDialogueForm openForm = NpcDialogueForms.getOpenNpcDialogueForms(session);
@@ -486,7 +490,7 @@ public class GeyserUtils implements Extension {
                     buttons.add(new Button(button.text(), button.commands(),
                             button.mode(), () -> {
                         if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                            session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                            session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
                         }
                     }, button.hasNextForm()));
                     i++;
@@ -514,7 +518,7 @@ public class GeyserUtils implements Extension {
                 }
             }
             session.sendUpstreamPacket(animateEntityPacket);
-        } else if (customPacket instanceof CustomEntityPacket customEntityPacket) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.CustomEntityPacket customEntityPacket) {
             if (!LOADED_ENTITY_DEFINITIONS.containsKey(customEntityPacket.getIdentifier())) {
                 // System.out.println("Not a vaild entity:" + customEntityPacket.getEntityId());
                 return;
@@ -523,7 +527,7 @@ public class GeyserUtils implements Extension {
 
             Cache<Integer, String> cache = CUSTOM_ENTITIES.get(session);
             cache.put(customEntityPacket.getEntityId(), customEntityPacket.getIdentifier());
-        } else if (customPacket instanceof CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.camera.CameraInstructionCustomPayloadPacket cameraInstructionPacket) {
             if (cameraInstructionPacket.getInstruction() instanceof SetInstruction instruction) {
                 session.camera().sendCameraPosition(Converter.serializeSetInstruction(instruction));
                 session.getCameraData().forceCameraPerspective(Converter.serializeCameraPerspective(instruction.getPreset()));
@@ -549,7 +553,7 @@ public class GeyserUtils implements Extension {
                 }
             }
 
-        } else if (customPacket instanceof CustomEntityDataPacket customEntityDataPacket) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.CustomEntityDataPacket customEntityDataPacket) {
             Entity entity = session.getEntityCache().getEntityByJavaId(customEntityDataPacket.getEntityId());
             if (entity != null) {
                 if (customEntityDataPacket.getHeight() != null)
@@ -564,7 +568,7 @@ public class GeyserUtils implements Extension {
                     entity.getDirtyMetadata().put(EntityDataTypes.VARIANT, customEntityDataPacket.getVariant());
                 entity.updateBedrockMetadata();
             }
-        } else if (customPacket instanceof EntityPropertyPacket entityPropertyPacket) {
+        } else if (customPacket instanceof me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyPacket entityPropertyPacket) {
             Entity entity = session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId());
             if (entity != null) {
                 if (entityPropertyPacket.getIdentifier() == null

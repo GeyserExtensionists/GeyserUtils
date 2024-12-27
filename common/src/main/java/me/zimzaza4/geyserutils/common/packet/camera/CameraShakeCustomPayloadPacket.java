@@ -1,8 +1,9 @@
-package me.zimzaza4.geyserutils.common.packet;
+package me.zimzaza4.geyserutils.common.packet.camera;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 
 @Getter
 @AllArgsConstructor

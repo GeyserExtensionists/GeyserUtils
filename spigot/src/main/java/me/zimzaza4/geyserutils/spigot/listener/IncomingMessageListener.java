@@ -5,7 +5,7 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.NpcFormResponseCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 import me.zimzaza4.geyserutils.spigot.api.form.NpcDialogueForm;
 
