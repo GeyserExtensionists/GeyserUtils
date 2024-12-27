@@ -18,7 +18,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
+import me.zimzaza4.geyserutils.common.form.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.packet.form.NpcDialogueFormDataCustomPayloadPacket;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 
@@ -67,7 +67,16 @@ public class NpcDialogueForm {
             return;
 
         // Create packet
-        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(formId.toString(), title, dialogue, skinData, bindEntity.getEntityId(), buttons, "OPEN", hasNextForm);
+        NpcDialogueFormDataCustomPayloadPacket data = new NpcDialogueFormDataCustomPayloadPacket(
+                formId.toString(),
+                title,
+                dialogue,
+                skinData,
+                bindEntity.getEntityId(),
+                buttons,
+                "OPEN",
+                hasNextForm
+        );
 
         // Register form
         FORMS.put(formId.toString(), this);

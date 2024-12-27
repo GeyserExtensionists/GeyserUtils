@@ -1,30 +1,19 @@
 package me.zimzaza4.geyserutils.geyser;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import lombok.Getter;
-import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
-import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
-import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
-import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
-import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
-import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
-import me.zimzaza4.geyserutils.common.manager.PacketManager;
-import me.zimzaza4.geyserutils.common.packet.*;
-import me.zimzaza4.geyserutils.common.packet.camera.CameraShakeCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket;
-import me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyRegisterPacket;
-import me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket;
-import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
-import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
-import me.zimzaza4.geyserutils.geyser.form.element.Button;
-import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
-import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
-import me.zimzaza4.geyserutils.geyser.util.Converter;
-import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
-import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtType;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
@@ -60,18 +49,35 @@ import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.Serverbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.jetbrains.annotations.NotNull;
 
-import javax.imageio.ImageIO;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import lombok.Getter;
+import me.zimzaza4.geyserutils.common.camera.data.CameraPreset;
+import me.zimzaza4.geyserutils.common.camera.instruction.ClearInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.FadeInstruction;
+import me.zimzaza4.geyserutils.common.camera.instruction.SetInstruction;
+import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
+import me.zimzaza4.geyserutils.common.form.NpcDialogueButton;
+import me.zimzaza4.geyserutils.common.manager.PacketManager;
+import me.zimzaza4.geyserutils.common.packet.BundlePacket;
+import me.zimzaza4.geyserutils.common.packet.CustomParticleEffectPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.CustomSkinPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.camera.CameraShakeCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.AnimateEntityCustomPayloadPacket;
+import me.zimzaza4.geyserutils.common.packet.entity.EntityPropertyRegisterPacket;
+import me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket;
+import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
+import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
+import me.zimzaza4.geyserutils.geyser.form.element.Button;
+import me.zimzaza4.geyserutils.geyser.replace.JavaAddEntityTranslatorReplace;
+import me.zimzaza4.geyserutils.geyser.translator.NPCFormResponseTranslator;
+import me.zimzaza4.geyserutils.geyser.util.Converter;
+import me.zimzaza4.geyserutils.geyser.util.DeltaUtils;
+import me.zimzaza4.geyserutils.geyser.util.ReflectionUtils;
 
 public class GeyserUtils implements Extension {
 
@@ -89,7 +95,7 @@ public class GeyserUtils implements Extension {
     @Getter
     public static Map<GeyserConnection, Cache<Integer, String>> CUSTOM_ENTITIES = new ConcurrentHashMap<>();
     static Cape EMPTY_CAPE = new Cape("", "no-cape", new byte[0], true);
-    private static List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
+    private static final List<String> ENTITIES_WAIT_FOR_LOAD = new ArrayList<>();
     @Getter
     private static GeyserUtils instance;
 
@@ -144,9 +150,7 @@ public class GeyserUtils implements Extension {
         properties.values().stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
-                .forEach(id -> {
-                    Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id));
-                });
+                .forEach(id -> Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id)));
 
 
         Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
@@ -487,12 +491,15 @@ public class GeyserUtils implements Extension {
 
 
                     int finalI = i;
-                    buttons.add(new Button(button.text(), button.commands(),
-                            button.mode(), () -> {
-                        if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
-                            session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
-                        }
-                    }, button.hasNextForm()));
+                    buttons.add(new Button(
+                            button.text(),
+                            button.commands(),
+                            button.mode(),
+                            () -> {
+                                if (button.mode() == NpcDialogueButton.ButtonMode.BUTTON_MODE) {
+                                    session.sendDownstreamPacket(ReflectionUtils.buildServerboundPayloadPacket(GeyserUtilsChannels.MAIN, packetManager.encodePacket(new me.zimzaza4.geyserutils.common.packet.form.NpcFormResponseCustomPayloadPacket(formData.formId(), finalI))));
+                                }
+                            }, button.hasNextForm()));
                     i++;
                 }
             }
@@ -572,7 +579,7 @@ public class GeyserUtils implements Extension {
             Entity entity = session.getEntityCache().getEntityByJavaId(entityPropertyPacket.getEntityId());
             if (entity != null) {
                 if (entityPropertyPacket.getIdentifier() == null
-                        || entityPropertyPacket.getValue() == null) return;
+                    || entityPropertyPacket.getValue() == null) return;
 
                 if (entity.getPropertyManager() == null) return;
                 if (entityPropertyPacket.getValue() instanceof Boolean value) {
@@ -584,7 +591,7 @@ public class GeyserUtils implements Extension {
             }
         } else if (customPacket instanceof EntityPropertyRegisterPacket entityPropertyRegisterPacket) {
             if (entityPropertyRegisterPacket.getIdentifier() == null
-                    || entityPropertyRegisterPacket.getType() == null) return;
+                || entityPropertyRegisterPacket.getType() == null) return;
 
             Entity entity = (session.getEntityCache().getEntityByJavaId(entityPropertyRegisterPacket.getEntityId()));
             if (entity != null) {

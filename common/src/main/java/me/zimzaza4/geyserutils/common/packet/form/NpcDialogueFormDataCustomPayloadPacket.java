@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
+import me.zimzaza4.geyserutils.common.form.NpcDialogueButton;
 import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 
 @AllArgsConstructor

@@ -1,6 +1,6 @@
 package me.zimzaza4.geyserutils.geyser.translator;
 
-import me.zimzaza4.geyserutils.common.form.element.NpcDialogueButton;
+import me.zimzaza4.geyserutils.common.form.NpcDialogueButton;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForm;
 import me.zimzaza4.geyserutils.geyser.form.NpcDialogueForms;
 import me.zimzaza4.geyserutils.geyser.form.element.Button;
