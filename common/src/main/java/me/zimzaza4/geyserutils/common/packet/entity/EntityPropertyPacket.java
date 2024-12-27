@@ -11,8 +11,8 @@ import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EntityPropertyPacket<T> extends CustomPayloadPacket {
-    private int entityId;
 
+    private int entityId;
     private String identifier;
     private T value;
 

@@ -10,6 +10,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomSkinPayloadPacket extends CustomPayloadPacket {
+
     private int entityId;
     private String skinId;
+
 }

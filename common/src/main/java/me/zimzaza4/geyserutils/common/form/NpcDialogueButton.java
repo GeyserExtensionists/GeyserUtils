@@ -1,5 +1,6 @@
-package me.zimzaza4.geyserutils.common.form.element;
+package me.zimzaza4.geyserutils.common.form;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -9,6 +10,7 @@ import java.util.List;
 @Setter
 @Getter
 @Accessors(fluent = true)
+@Builder
 public class NpcDialogueButton {
 
     private String text;

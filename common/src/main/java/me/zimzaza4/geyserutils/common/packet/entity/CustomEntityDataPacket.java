@@ -11,6 +11,7 @@ import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 @Getter
 @Setter
 public class CustomEntityDataPacket extends CustomPayloadPacket {
+
     private int entityId;
     private Float height;
     private Float width;

@@ -14,8 +14,10 @@ import org.jetbrains.annotations.Nullable;
 @Getter
 @Setter
 public class CustomParticle {
+
     private Pos position;
     private String identifier;
     @Nullable
     private String molangVariablesJson;
+
 }

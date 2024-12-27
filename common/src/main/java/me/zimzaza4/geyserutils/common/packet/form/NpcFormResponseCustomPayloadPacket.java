@@ -9,6 +9,8 @@ import me.zimzaza4.geyserutils.common.packet.CustomPayloadPacket;
 @NoArgsConstructor
 @Getter
 public class NpcFormResponseCustomPayloadPacket extends CustomPayloadPacket {
-    String formId;
-    int buttonId;
+
+    private String formId;
+    private int buttonId;
+
 }
