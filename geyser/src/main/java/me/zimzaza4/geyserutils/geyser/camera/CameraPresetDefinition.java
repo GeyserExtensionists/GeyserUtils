@@ -3,8 +3,6 @@ package me.zimzaza4.geyserutils.geyser.camera;
 import lombok.AllArgsConstructor;
 import org.cloudburstmc.protocol.common.NamedDefinition;
 
-import java.util.Map;
-
 
 @AllArgsConstructor
 public class CameraPresetDefinition implements NamedDefinition {

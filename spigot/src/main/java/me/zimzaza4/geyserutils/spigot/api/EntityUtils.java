@@ -3,7 +3,6 @@ package me.zimzaza4.geyserutils.spigot.api;
 import me.zimzaza4.geyserutils.common.channel.GeyserUtilsChannels;
 import me.zimzaza4.geyserutils.common.packet.*;
 import me.zimzaza4.geyserutils.spigot.GeyserUtils;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.awt.*;

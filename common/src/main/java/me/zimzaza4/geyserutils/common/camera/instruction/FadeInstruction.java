@@ -16,5 +16,6 @@ public class FadeInstruction implements Instruction {
     @Nullable
     private Time time;
 
-    protected FadeInstruction() {}
+    protected FadeInstruction() {
+    }
 }

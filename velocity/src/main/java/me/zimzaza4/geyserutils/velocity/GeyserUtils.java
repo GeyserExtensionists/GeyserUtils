@@ -20,6 +20,7 @@ import java.nio.file.Path;
 public class GeyserUtils {
 
     private final ProxyServer server;
+
     @Inject
     public GeyserUtils(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
         this.server = server;

@@ -49,7 +49,8 @@ import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIO
 
 public class JavaAddEntityTranslatorReplace extends PacketTranslator<ClientboundAddEntityPacket> {
     @Override
-    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) { EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
+    public void translate(GeyserSession session, ClientboundAddEntityPacket packet) {
+        EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
         if (definition == null) {
             session.getGeyser().getLogger().debug("Could not find an entity definition with type " + packet.getType());
             return;
@@ -115,6 +116,8 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
             } else {
                 return;
             }
+        } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) { /* TODO find a way to only remove the MEG ones */
+            return;
         } else {
             entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
                     packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
