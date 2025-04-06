@@ -116,8 +116,6 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
             } else {
                 return;
             }
-        } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) { /* TODO find a way to only remove the MEG ones */
-            return;
         } else {
             entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
                     packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
