@@ -116,6 +116,11 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
             } else {
                 return;
             }
+        } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) {
+            /* todo this fix gets rid of aec's in general, we should see if it's a meg aec somehow */
+            definition = Registries.ENTITY_DEFINITIONS.get(EntityType.INTERACTION);
+            entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
+                    packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
         } else {
             entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
                     packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
