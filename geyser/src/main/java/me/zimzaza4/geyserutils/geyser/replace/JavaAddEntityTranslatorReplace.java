@@ -98,13 +98,6 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
         if (packet.getType() == EntityType.FALLING_BLOCK) {
             entity = new FallingBlockEntity(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(), packet.getUuid(),
                     position, motion, yaw, pitch, headYaw, ((FallingBlockData) packet.getData()).getId());
-        } else if (packet.getType() == EntityType.ITEM_FRAME || packet.getType() == EntityType.GLOW_ITEM_FRAME) {
-            // Item frames need the hanging direction
-            entity = new ItemFrameEntity(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(), packet.getUuid(),
-                    definition, position, motion, yaw, pitch, headYaw, (Direction) packet.getData());
-        } else if (packet.getType() == EntityType.PAINTING) {
-            entity = new PaintingEntity(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(), packet.getUuid(),
-                    definition, position, motion, yaw, pitch, headYaw, (Direction) packet.getData());
         } else if (packet.getType() == EntityType.FISHING_BOBBER) {
             // Fishing bobbers need the owner for the line
             int ownerEntityId = ((ProjectileData) packet.getData()).getOwnerId();
