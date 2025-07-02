@@ -117,6 +117,11 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
         } else {
             entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
                     packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
+
+            // This is done over entity metadata in modern versions, but is still sent over network in the spawn packet
+            if (entity instanceof HangingEntity hanging) {
+                hanging.setDirection((Direction) packet.getData());
+            }
         }
 
         if (packet.getType() == EntityType.WARDEN) {
