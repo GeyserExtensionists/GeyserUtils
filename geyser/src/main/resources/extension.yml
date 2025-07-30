@@ -1,6 +1,6 @@
 name: GeyserUtils
 id: geyserutils
 main: me.zimzaza4.geyserutils.geyser.GeyserUtils
-api: 1.0.0
+api: 2.4.1
 version: 1.0.0
 authors: [ zimzaza4, willem.dev ]
