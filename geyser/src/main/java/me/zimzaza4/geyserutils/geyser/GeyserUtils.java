@@ -34,6 +34,7 @@ import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntityPropertiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.skin.Cape;
@@ -93,6 +94,10 @@ public class GeyserUtils implements Extension {
     @Getter
     private static GeyserUtils instance;
 
+    public static final Integer MAX_VALUE = 1000000;
+
+    public static final Integer MIN_VALUE = -1000000;
+
     public GeyserUtils() {
         instance = this;
     }
@@ -106,8 +111,8 @@ public class GeyserUtils implements Extension {
         pairs.forEach(p -> {
             // only bool, float and int support for now
             if (p.getValue() == Boolean.class) builder.add(new BooleanProperty(Identifier.of(p.getKey()), false));
-            else if (p.getValue() == Float.class) builder.add(new FloatProperty(Identifier.of(p.getKey()), Float.MAX_VALUE, Float.MIN_VALUE,0f));
-            else if (p.getValue() == Integer.class) builder.add(new IntProperty(Identifier.of(p.getKey()), Integer.MAX_VALUE, Integer.MIN_VALUE, 0));
+            else if (p.getValue() == Float.class) builder.add(new FloatProperty(Identifier.of(p.getKey()), MAX_VALUE, MIN_VALUE,0f));
+            else if (p.getValue() == Integer.class) builder.add(new IntProperty(Identifier.of(p.getKey()), MAX_VALUE, MIN_VALUE, 0));
             else instance.logger().info("Found unknown property: " + p.getKey());
         });
 
@@ -335,14 +340,19 @@ public class GeyserUtils implements Extension {
 
         replaceTranslator();
         GEYSER_LOADED = true;
+        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
+        MountFix.start();
+    }
+
+
+    @Subscribe
+    public void onDefineProperties(GeyserDefineEntityPropertiesEvent event) {
         for (String registeredEntity : REGISTERED_ENTITIES) {
             registerEntityToGeyser(registeredEntity);
         }
         for (String id : ENTITIES_WAIT_FOR_LOAD) {
             registerPropertiesForGeyser(id);
         }
-        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
-        MountFix.start();
     }
 
     public void replaceTranslator() {
@@ -578,7 +588,7 @@ public class GeyserUtils implements Extension {
                 if (entityPropertyPacket.getValue() instanceof Boolean value) {
                     entity.getPropertyManager().addProperty(new BooleanProperty(Identifier.of(entityPropertyPacket.getIdentifier()), false), value);
                 } else if (entityPropertyPacket.getValue() instanceof Integer value) {
-                    entity.getPropertyManager().addProperty(new IntProperty(Identifier.of(entityPropertyPacket.getIdentifier()), Integer.MAX_VALUE, Integer.MIN_VALUE, 0), value);
+                    entity.getPropertyManager().addProperty(new IntProperty(Identifier.of(entityPropertyPacket.getIdentifier()), MAX_VALUE, MIN_VALUE, 0), value);
                 }
                 entity.updateBedrockEntityProperties();
             }
