@@ -40,8 +40,12 @@ import org.geysermc.geyser.api.skin.Cape;
 import org.geysermc.geyser.api.skin.Skin;
 import org.geysermc.geyser.api.skin.SkinData;
 import org.geysermc.geyser.api.skin.SkinGeometry;
+import org.geysermc.geyser.api.util.Identifier;
 import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.entity.properties.GeyserEntityProperties;
+import org.geysermc.geyser.entity.properties.type.BooleanProperty;
+import org.geysermc.geyser.entity.properties.type.FloatProperty;
+import org.geysermc.geyser.entity.properties.type.IntProperty;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
@@ -94,20 +98,20 @@ public class GeyserUtils implements Extension {
     }
 
     // the static here is crazy ;(
-    private static GeyserEntityProperties getProperties(String id) {
+    private static GeyserEntityProperties.Builder getProperties(String id) {
         if (!properties.containsKey(id)) return null;
 
-        GeyserEntityProperties.Builder builder = new GeyserEntityProperties.Builder();
+        GeyserEntityProperties.Builder builder = new GeyserEntityProperties.Builder(id);
         List<Map.Entry<String, Class<?>>> pairs = properties.get(id);
         pairs.forEach(p -> {
             // only bool, float and int support for now
-            if (p.getValue() == Boolean.class) builder.addBoolean(p.getKey());
-            else if (p.getValue() == Float.class) builder.addFloat(p.getKey());
-            else if (p.getValue() == Integer.class) builder.addInt(p.getKey());
+            if (p.getValue() == Boolean.class) builder.add(new BooleanProperty(Identifier.of(p.getKey()), false));
+            else if (p.getValue() == Float.class) builder.add(new FloatProperty(Identifier.of(p.getKey()), Float.MAX_VALUE, Float.MIN_VALUE,0f));
+            else if (p.getValue() == Integer.class) builder.add(new IntProperty(Identifier.of(p.getKey()), Integer.MAX_VALUE, Integer.MIN_VALUE, 0));
             else instance.logger().info("Found unknown property: " + p.getKey());
         });
 
-        return builder.build();
+        return builder;
     }
 
     private static boolean containsProperty(String entityId, String identifier) {
@@ -135,7 +139,7 @@ public class GeyserUtils implements Extension {
 
     public static void registerPropertiesForGeyser(String entityId) {
 
-        GeyserEntityProperties entityProperties = getProperties(entityId);
+        GeyserEntityProperties entityProperties = getProperties(entityId).build();
         if (entityProperties == null) return;
         properties.values().stream()
                 .flatMap(List::stream)
@@ -188,7 +192,7 @@ public class GeyserUtils implements Extension {
         );
 
         EntityDefinition<Entity> def = EntityDefinition.builder(null)
-                .height(0.1f).width(0.1f).identifier(id).registeredProperties(getProperties(id)).build();
+                .height(0.1f).width(0.1f).identifier(id).propertiesBuilder(getProperties(id)).build();
 
         LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
@@ -572,9 +576,9 @@ public class GeyserUtils implements Extension {
 
                 if (entity.getPropertyManager() == null) return;
                 if (entityPropertyPacket.getValue() instanceof Boolean value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                    entity.getPropertyManager().addProperty(new BooleanProperty(Identifier.of(entityPropertyPacket.getIdentifier()), false), value);
                 } else if (entityPropertyPacket.getValue() instanceof Integer value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                    entity.getPropertyManager().addProperty(new IntProperty(Identifier.of(entityPropertyPacket.getIdentifier()), Integer.MAX_VALUE, Integer.MIN_VALUE, 0), value);
                 }
                 entity.updateBedrockEntityProperties();
             }
