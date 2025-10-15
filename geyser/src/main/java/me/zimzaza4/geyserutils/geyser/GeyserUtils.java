@@ -144,8 +144,9 @@ public class GeyserUtils implements Extension {
 
     public static void registerPropertiesForGeyser(String entityId) {
 
-        GeyserEntityProperties entityProperties = getProperties(entityId).build();
-        if (entityProperties == null) return;
+        GeyserEntityProperties.Builder builder = getProperties(entityId);
+        if (builder == null) return;
+        GeyserEntityProperties entityProperties = builder.build();
         properties.values().stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
