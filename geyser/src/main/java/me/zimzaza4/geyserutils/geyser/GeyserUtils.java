@@ -142,10 +142,9 @@ public class GeyserUtils implements Extension {
         ENTITIES_WAIT_FOR_LOAD.add(entityId);
     }
 
-    public static void registerPropertiesForGeyser(String entityId) {
-
+    public static NbtMap registerPropertiesForGeyser(String entityId) {
         GeyserEntityProperties.Builder builder = getProperties(entityId);
-        if (builder == null) return;
+        if (builder == null) return null;
         GeyserEntityProperties entityProperties = builder.build();
         properties.values().stream()
                 .flatMap(List::stream)
@@ -154,14 +153,12 @@ public class GeyserUtils implements Extension {
                     Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id));
                 });
 
-
-        Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
-
         EntityDefinition old = LOADED_ENTITY_DEFINITIONS.get(entityId);
         LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
                 old.width(), old.height(), old.offset(), entityProperties, old.translators()));
 
         instance.logger().info("Defined entity: " + entityId + " in registry.");
+        return entityProperties.toNbtMap(entityId);
     }
 
     public static void addCustomEntity(String id) {
@@ -351,9 +348,14 @@ public class GeyserUtils implements Extension {
         for (String registeredEntity : REGISTERED_ENTITIES) {
             registerEntityToGeyser(registeredEntity);
         }
+        Set<NbtMap> entityProperties = new HashSet<>();
         for (String id : ENTITIES_WAIT_FOR_LOAD) {
-            registerPropertiesForGeyser(id);
+            NbtMap map = registerPropertiesForGeyser(id);
+            if (map == null) continue;
+            entityProperties.add(map);
         }
+        // Prevent Error: "Cannot add properties outside the GeyserDefineEntityProperties event!"
+        scheduler.schedule(() -> Registries.BEDROCK_ENTITY_PROPERTIES.get().addAll(entityProperties), 1, TimeUnit.SECONDS);
     }
 
     public void replaceTranslator() {
