@@ -47,7 +47,11 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.Clie
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.CUSTOM_ENTITIES;
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIONS;
 
+
 public class JavaAddEntityTranslatorReplace extends PacketTranslator<ClientboundAddEntityPacket> {
+    private static final boolean SHOW_PLAYER_LIST_LOGS = Boolean.parseBoolean(System.getProperty("Geyser.ShowPlayerListLogs", "true"));
+
+
     @Override
     public void translate(GeyserSession session, ClientboundAddEntityPacket packet) {
         EntityDefinition<?> definition = Registries.ENTITY_DEFINITIONS.get(packet.getType());
@@ -57,7 +61,7 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
         }
 
         Vector3f position = Vector3f.from(packet.getX(), packet.getY(), packet.getZ());
-        Vector3f motion = Vector3f.from(packet.getMotionX(), packet.getMotionY(), packet.getMotionZ());
+        Vector3f motion = packet.getMovement().toFloat();
         float yaw = packet.getYaw();
         float pitch = packet.getPitch();
         float headYaw = packet.getHeadYaw();
@@ -73,7 +77,9 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
             } else {
                 entity = session.getEntityCache().getPlayerEntity(packet.getUuid());
                 if (entity == null) {
-                    GeyserImpl.getInstance().getLogger().error(GeyserLocale.getLocaleStringLog("geyser.entity.player.failed_list", packet.getUuid()));
+                    if (SHOW_PLAYER_LIST_LOGS) {
+                        GeyserImpl.getInstance().getLogger().error(GeyserLocale.getLocaleStringLog("geyser.entity.player.failed_list", packet.getUuid()));
+                    }
                     return;
                 }
 
@@ -110,7 +116,6 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
                 return;
             }
         } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) {
-            /* todo this fix gets rid of aec's in general, we should see if it's a meg aec somehow */
             definition = Registries.ENTITY_DEFINITIONS.get(EntityType.INTERACTION);
             entity = definition.factory().create(session, packet.getEntityId(), session.getEntityCache().getNextEntityId().incrementAndGet(),
                     packet.getUuid(), definition, position, motion, yaw, pitch, headYaw);
@@ -142,4 +147,7 @@ public class JavaAddEntityTranslatorReplace extends PacketTranslator<Clientbound
 
         session.getEntityCache().spawnEntity(entity);
     }
+    /*
+
+     */
 }

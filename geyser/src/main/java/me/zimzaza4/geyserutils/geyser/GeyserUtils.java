@@ -34,14 +34,19 @@ import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionDisconnectEvent;
 import org.geysermc.geyser.api.event.bedrock.SessionLoginEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCommandsEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntityPropertiesEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.skin.Cape;
 import org.geysermc.geyser.api.skin.Skin;
 import org.geysermc.geyser.api.skin.SkinData;
 import org.geysermc.geyser.api.skin.SkinGeometry;
+import org.geysermc.geyser.api.util.Identifier;
 import org.geysermc.geyser.entity.EntityDefinition;
 import org.geysermc.geyser.entity.properties.GeyserEntityProperties;
+import org.geysermc.geyser.entity.properties.type.BooleanProperty;
+import org.geysermc.geyser.entity.properties.type.FloatProperty;
+import org.geysermc.geyser.entity.properties.type.IntProperty;
 import org.geysermc.geyser.entity.type.Entity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
 import org.geysermc.geyser.registry.Registries;
@@ -89,25 +94,29 @@ public class GeyserUtils implements Extension {
     @Getter
     private static GeyserUtils instance;
 
+    public static final Integer MAX_VALUE = 1000000;
+
+    public static final Integer MIN_VALUE = -1000000;
+
     public GeyserUtils() {
         instance = this;
     }
 
     // the static here is crazy ;(
-    private static GeyserEntityProperties getProperties(String id) {
+    private static GeyserEntityProperties.Builder getProperties(String id) {
         if (!properties.containsKey(id)) return null;
 
-        GeyserEntityProperties.Builder builder = new GeyserEntityProperties.Builder();
+        GeyserEntityProperties.Builder builder = new GeyserEntityProperties.Builder(id);
         List<Map.Entry<String, Class<?>>> pairs = properties.get(id);
         pairs.forEach(p -> {
             // only bool, float and int support for now
-            if (p.getValue() == Boolean.class) builder.addBoolean(p.getKey());
-            else if (p.getValue() == Float.class) builder.addFloat(p.getKey());
-            else if (p.getValue() == Integer.class) builder.addInt(p.getKey());
+            if (p.getValue() == Boolean.class) builder.add(new BooleanProperty(Identifier.of(p.getKey()), false));
+            else if (p.getValue() == Float.class) builder.add(new FloatProperty(Identifier.of(p.getKey()), MAX_VALUE, MIN_VALUE,0f));
+            else if (p.getValue() == Integer.class) builder.add(new IntProperty(Identifier.of(p.getKey()), MAX_VALUE, MIN_VALUE, 0));
             else instance.logger().info("Found unknown property: " + p.getKey());
         });
 
-        return builder.build();
+        return builder;
     }
 
     private static boolean containsProperty(String entityId, String identifier) {
@@ -133,10 +142,10 @@ public class GeyserUtils implements Extension {
         ENTITIES_WAIT_FOR_LOAD.add(entityId);
     }
 
-    public static void registerPropertiesForGeyser(String entityId) {
-
-        GeyserEntityProperties entityProperties = getProperties(entityId);
-        if (entityProperties == null) return;
+    public static NbtMap registerPropertiesForGeyser(String entityId) {
+        GeyserEntityProperties.Builder builder = getProperties(entityId);
+        if (builder == null) return null;
+        GeyserEntityProperties entityProperties = builder.build();
         properties.values().stream()
                 .flatMap(List::stream)
                 .map(Map.Entry::getKey)
@@ -144,14 +153,12 @@ public class GeyserUtils implements Extension {
                     Registries.BEDROCK_ENTITY_PROPERTIES.get().removeIf(i -> i.containsKey(id));
                 });
 
-
-        Registries.BEDROCK_ENTITY_PROPERTIES.get().add(entityProperties.toNbtMap(entityId));
-
         EntityDefinition old = LOADED_ENTITY_DEFINITIONS.get(entityId);
         LOADED_ENTITY_DEFINITIONS.replace(entityId, new EntityDefinition(old.factory(), old.entityType(), old.identifier(),
                 old.width(), old.height(), old.offset(), entityProperties, old.translators()));
 
         instance.logger().info("Defined entity: " + entityId + " in registry.");
+        return entityProperties.toNbtMap(entityId);
     }
 
     public static void addCustomEntity(String id) {
@@ -188,7 +195,7 @@ public class GeyserUtils implements Extension {
         );
 
         EntityDefinition<Entity> def = EntityDefinition.builder(null)
-                .height(0.1f).width(0.1f).identifier(id).registeredProperties(getProperties(id)).build();
+                .height(0.1f).width(0.1f).identifier(id).propertiesBuilder(getProperties(id)).build();
 
         LOADED_ENTITY_DEFINITIONS.put(id, def);
     }
@@ -331,14 +338,24 @@ public class GeyserUtils implements Extension {
 
         replaceTranslator();
         GEYSER_LOADED = true;
+        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
+        MountFix.start();
+    }
+
+
+    @Subscribe
+    public void onDefineProperties(GeyserDefineEntityPropertiesEvent event) {
         for (String registeredEntity : REGISTERED_ENTITIES) {
             registerEntityToGeyser(registeredEntity);
         }
+        Set<NbtMap> entityProperties = new HashSet<>();
         for (String id : ENTITIES_WAIT_FOR_LOAD) {
-            registerPropertiesForGeyser(id);
+            NbtMap map = registerPropertiesForGeyser(id);
+            if (map == null) continue;
+            entityProperties.add(map);
         }
-        logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
-        MountFix.start();
+        // Prevent Error: "Cannot add properties outside the GeyserDefineEntityProperties event!"
+        scheduler.schedule(() -> Registries.BEDROCK_ENTITY_PROPERTIES.get().addAll(entityProperties), 1, TimeUnit.SECONDS);
     }
 
     public void replaceTranslator() {
@@ -572,9 +589,9 @@ public class GeyserUtils implements Extension {
 
                 if (entity.getPropertyManager() == null) return;
                 if (entityPropertyPacket.getValue() instanceof Boolean value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                    entity.getPropertyManager().addProperty(new BooleanProperty(Identifier.of(entityPropertyPacket.getIdentifier()), false), value);
                 } else if (entityPropertyPacket.getValue() instanceof Integer value) {
-                    entity.getPropertyManager().add(entityPropertyPacket.getIdentifier(), value);
+                    entity.getPropertyManager().addProperty(new IntProperty(Identifier.of(entityPropertyPacket.getIdentifier()), MAX_VALUE, MIN_VALUE, 0), value);
                 }
                 entity.updateBedrockEntityProperties();
             }
