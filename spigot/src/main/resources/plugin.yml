@@ -1,5 +1,6 @@
 name: GeyserUtils
 version: '${project.version}'
+api-version: '1.13'
 main: me.zimzaza4.geyserutils.spigot.GeyserUtils
 authors:
   - zimzaza4
