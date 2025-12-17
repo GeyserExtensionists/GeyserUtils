@@ -18,21 +18,26 @@ public class MountFix {
         // if the vehicle is too fast, the problem appear
         Executors.newSingleThreadScheduledExecutor()
                 .scheduleAtFixedRate(() -> {
-                    for (GeyserSession session : GeyserImpl.getInstance().onlineConnections()) {
-                        Entity v = session.getPlayerEntity().getVehicle();
-                        if (v != null && v.getDefinition() == EntityDefinitions.ARMOR_STAND) {
-                            long vehicleBedrockId = v.getGeyserId();
-                            if (session.getPlayerEntity().getVehicle().getGeyserId() == vehicleBedrockId) {
-                                // The Bedrock client, as of 1.19.51, dismounts on its end. The server may not agree with this.
-                                // If the server doesn't agree with our dismount (sends a packet saying we dismounted),
-                                // then remount the player.
-                                SetEntityLinkPacket linkPacket = new SetEntityLinkPacket();
-                                linkPacket.setEntityLink(new EntityLinkData(vehicleBedrockId, session.getPlayerEntity().getGeyserId(), EntityLinkData.Type.RIDER, true, false));
-                                session.sendUpstreamPacket(linkPacket);
+                    try {
+                        for (GeyserSession session : GeyserImpl.getInstance().onlineConnections()) {
+                            Entity v = session.getPlayerEntity().getVehicle();
+                            if (v != null && v.getDefinition() == EntityDefinitions.ARMOR_STAND) {
+                                session.setShouldSendSneak(true);
+                                long vehicleBedrockId = v.getGeyserId();
+                                if (session.getPlayerEntity().getVehicle().getGeyserId() == vehicleBedrockId) {
+                                    // The Bedrock client, as of 1.19.51, dismounts on its end. The server may not agree with this.
+                                    // If the server doesn't agree with our dismount (sends a packet saying we dismounted),
+                                    // then remount the player.
+                                    SetEntityLinkPacket linkPacket = new SetEntityLinkPacket();
+                                    linkPacket.setEntityLink(new EntityLinkData(vehicleBedrockId, session.getPlayerEntity().getGeyserId(), EntityLinkData.Type.PASSENGER, true, false, 0f));
+                                    session.sendUpstreamPacket(linkPacket);
+                                }
                             }
                         }
+                    } catch (Throwable t) {
+                        t.printStackTrace();
                     }
-                }, 2000, 80, TimeUnit.MILLISECONDS);
+                }, 200, 50, TimeUnit.MILLISECONDS);
 
 
     }

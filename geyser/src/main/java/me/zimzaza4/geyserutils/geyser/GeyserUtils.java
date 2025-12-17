@@ -339,7 +339,7 @@ public class GeyserUtils implements Extension {
         replaceTranslator();
         GEYSER_LOADED = true;
         logger().info("Defined " + LOADED_ENTITY_DEFINITIONS.size() + " entities");
-        MountFix.start();
+        // MountFix.start();
     }
 
 
