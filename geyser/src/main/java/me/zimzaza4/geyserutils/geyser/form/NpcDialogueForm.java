@@ -80,7 +80,7 @@ public class NpcDialogueForm {
 
     public void createAndSend(GeyserSession player) {
         SetEntityDataPacket setEntityDataPacket = new SetEntityDataPacket();
-        setEntityDataPacket.setRuntimeEntityId(this.bindEntity.getGeyserId());
+        setEntityDataPacket.setRuntimeEntityId(this.bindEntity.geyserId());
 
         GeyserDirtyMetadata data = this.bindEntity.getDirtyMetadata();
 
@@ -98,7 +98,7 @@ public class NpcDialogueForm {
         player.sendUpstreamPacket(setEntityDataPacket);
 
         NpcDialoguePacket npcDialoguePacket = new NpcDialoguePacket();
-        npcDialoguePacket.setUniqueEntityId(this.bindEntity.getGeyserId());
+        npcDialoguePacket.setUniqueEntityId(this.bindEntity.geyserId());
         npcDialoguePacket.setAction(NpcDialoguePacket.Action.OPEN);
         npcDialoguePacket.setDialogue(this.dialogue);
         npcDialoguePacket.setNpcName(this.title);
@@ -114,7 +114,7 @@ public class NpcDialogueForm {
 
     public void close(GeyserSession player) {
         NpcDialoguePacket npcDialoguePacket = new NpcDialoguePacket();
-        npcDialoguePacket.setUniqueEntityId(this.bindEntity.getGeyserId());
+        npcDialoguePacket.setUniqueEntityId(this.bindEntity.geyserId());
         npcDialoguePacket.setAction(NpcDialoguePacket.Action.CLOSE);
         npcDialoguePacket.setDialogue(this.dialogue);
         npcDialoguePacket.setNpcName(this.title);
@@ -123,7 +123,7 @@ public class NpcDialogueForm {
 
         player.sendUpstreamPacket(npcDialoguePacket);
         SetEntityDataPacket setEntityDataPacket = new SetEntityDataPacket();
-        setEntityDataPacket.setRuntimeEntityId(this.bindEntity.getGeyserId());
+        setEntityDataPacket.setRuntimeEntityId(this.bindEntity.geyserId());
 
         GeyserDirtyMetadata data = this.bindEntity.getDirtyMetadata();
 
