@@ -100,6 +100,13 @@ public class GeyserUtils implements Extension {
 
     public GeyserUtils() {
         instance = this;
+
+        // This is temporary and we should remove this at some point lmao
+        try {
+            Class.forName("org.geysermc.geyser.entity.spawn.EntitySpawnContext");
+        } catch (ClassNotFoundException exception) {
+            logger().warning("Seems like you're on an outdated version of Geyser which doesn't support the refactored entity API, please update <3");
+        }
     }
 
     // the static here is crazy ;(
@@ -217,12 +224,12 @@ public class GeyserUtils implements Extension {
         Cape cape = skinData.cape();
         SkinGeometry geometry = skinData.geometry();
 
-        if (entity.getUuid().equals(session.getPlayerEntity().getUuid())) {
+        if (entity.uuid().equals(session.getPlayerEntity().uuid())) {
             PlayerListPacket.Entry updatedEntry = buildEntryManually(
                     session,
-                    entity.getUuid(),
+                    entity.uuid(),
                     entity.getUsername(),
-                    entity.getGeyserId(),
+                    entity.geyserId(),
                     skin,
                     cape,
                     geometry
@@ -234,7 +241,7 @@ public class GeyserUtils implements Extension {
             session.sendUpstreamPacket(playerAddPacket);
         } else {
             PlayerSkinPacket packet = new PlayerSkinPacket();
-            packet.setUuid(entity.getUuid());
+            packet.setUuid(entity.uuid());
             packet.setOldSkinName("");
             packet.setNewSkinName(skin.textureUrl());
             packet.setSkin(getSkin(skin.textureUrl(), skin, cape, geometry));
@@ -257,7 +264,7 @@ public class GeyserUtils implements Extension {
         }
 
         PlayerListPacket.Entry entry;
-        if (session.getPlayerEntity().getUuid().equals(uuid)) {
+        if (session.getPlayerEntity().uuid().equals(uuid)) {
             entry = new PlayerListPacket.Entry(session.getAuthData().uuid());
         } else {
             entry = new PlayerListPacket.Entry(uuid);
@@ -523,7 +530,7 @@ public class GeyserUtils implements Extension {
                     try {
                         // because of shaded jar
                         Object object = AnimateEntityPacket.class.getMethod("getRuntimeEntityIds").invoke(animateEntityPacket);
-                        object.getClass().getMethod("add", Long.class).invoke(object, entity.getGeyserId());
+                        object.getClass().getMethod("add", Long.class).invoke(object, entity.geyserId());
 
                     } catch (Exception e) {
                         e.printStackTrace();
