@@ -100,13 +100,6 @@ public class GeyserUtils implements Extension {
 
     public GeyserUtils() {
         instance = this;
-
-        // This is temporary and we should remove this at some point lmao
-        try {
-            Class.forName("org.geysermc.geyser.entity.spawn.EntitySpawnContext");
-        } catch (ClassNotFoundException exception) {
-            logger().warning("Seems like you're on an outdated version of Geyser which doesn't support the refactored entity API, please update <3");
-        }
     }
 
     // the static here is crazy ;(
@@ -338,6 +331,13 @@ public class GeyserUtils implements Extension {
 
     @Subscribe
     public void onEnable(GeyserPostInitializeEvent event) {
+        // This is temporary and we should remove this at some point lmao
+        try {
+            Class.forName("org.geysermc.geyser.entity.spawn.EntitySpawnContext");
+        } catch (ClassNotFoundException exception) {
+            logger().warning("Seems like you're on an outdated version of Geyser which doesn't support the refactored entity API, please update <3");
+        }
+
         Registries.BEDROCK_PACKET_TRANSLATORS.register(NpcRequestPacket.class, new NPCFormResponseTranslator());
         loadSkins();
         ReflectionUtils.init();
