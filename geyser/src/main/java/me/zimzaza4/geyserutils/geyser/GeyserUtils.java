@@ -449,6 +449,9 @@ public class GeyserUtils implements Extension {
     @Subscribe
     public void onSessionQuit(SessionDisconnectEvent event) {
         CUSTOM_ENTITIES.remove(event.connection());
+        if (event.connection() instanceof GeyserSession session) {
+            NpcDialogueForms.removeNpcDialogueForm(session);
+        }
     }
 
     public void registerPacketListener(GeyserSession session) {

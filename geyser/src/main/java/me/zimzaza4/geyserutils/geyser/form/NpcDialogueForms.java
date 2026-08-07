@@ -13,6 +13,10 @@ public class NpcDialogueForms {
         npcDialogueForms.remove(session);
     }
 
+    public static void removeNpcDialogueForm(GeyserSession session) {
+        npcDialogueForms.remove(session);
+    }
+
     public static NpcDialogueForm getOpenNpcDialogueForms(GeyserSession session) {
         return npcDialogueForms.get(session);
 
