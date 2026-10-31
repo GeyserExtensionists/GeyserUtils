@@ -36,7 +36,7 @@ import org.geysermc.geyser.entity.type.FallingBlockEntity;
 import org.geysermc.geyser.entity.type.FishingHookEntity;
 import org.geysermc.geyser.entity.type.HangingEntity;
 import org.geysermc.geyser.entity.type.player.PlayerEntity;
-import org.geysermc.geyser.registry.Registries;
+import org.geysermc.geyser.registry.java.BuiltInJavaRegistries;
 import org.geysermc.geyser.session.GeyserSession;
 import org.geysermc.geyser.skin.SkinManager;
 import org.geysermc.geyser.text.GeyserLocale;
@@ -65,7 +65,7 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             return;
         }
 
-        EntityTypeDefinition<?> definition = Registries.JAVA_ENTITY_TYPES.get(entityType);
+        EntityTypeDefinition<?> definition = BuiltInJavaRegistries.ENTITY_TYPE.get(entityType.mcpl().ordinal()).orElse(null);
         if (definition == null) {
             session.getGeyser().getLogger().debug("Could not find an entity definition for add entity packet " + packet);
             return;
@@ -136,7 +136,7 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             }
         } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) {
             GeyserEntityType interactionType = GeyserEntityType.of(EntityType.INTERACTION);
-            EntityTypeDefinition<?> interactionDefinition = Registries.JAVA_ENTITY_TYPES.get(interactionType);
+            EntityTypeDefinition<?> interactionDefinition = BuiltInJavaRegistries.ENTITY_TYPE.get(interactionType.mcpl().ordinal()).orElse(null);
             if (interactionDefinition == null) return;
             var interactionContext = EntitySpawnContext.fromPacket(session, interactionDefinition, packet);
 
