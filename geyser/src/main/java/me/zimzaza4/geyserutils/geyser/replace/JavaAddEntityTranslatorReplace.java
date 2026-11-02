@@ -140,7 +140,7 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             if (interactionTypeDefinition == null) return;
             var interactionContext = EntitySpawnContext.fromPacket(session, interactionTypeDefinition, packet);
 
-            entity = interactionTypeDefinition.factory().create(interactionContext);
+            entity = interactionDefinition.factory().create(interactionContext);
         } else {
             if (definition.factory() == null) {
                 session.getGeyser().getLogger().warning("Entity definition has no factory for add entity packet " + packet);
