@@ -136,9 +136,7 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             GeyserEntityType interactionType = GeyserEntityType.of(EntityType.INTERACTION);
             EntityTypeDefinition<?> interactionDefinition = interactionType.definition().orElse(null);
             if (interactionDefinition == null) return;
-            EntityTypeDefinition<?> interactionTypeDefinition = interactionType.definition().orElse(null);
-            if (interactionTypeDefinition == null) return;
-            var interactionContext = EntitySpawnContext.fromPacket(session, interactionTypeDefinition, packet);
+            var interactionContext = EntitySpawnContext.fromPacket(session, interactionDefinition, packet);
 
             entity = interactionDefinition.factory().create(interactionContext);
         } else {
