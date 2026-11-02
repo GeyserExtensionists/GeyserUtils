@@ -49,6 +49,8 @@ import org.geysermc.mcprotocollib.protocol.data.game.entity.object.WardenData;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundAddEntityPacket;
 
+import java.util.Optional;
+
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.CUSTOM_ENTITIES;
 import static me.zimzaza4.geyserutils.geyser.GeyserUtils.LOADED_ENTITY_DEFINITIONS;
 
@@ -64,7 +66,8 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             return;
         }
 
-        EntityTypeDefinition<?> definition = entityType.definition();
+        EntityTypeDefinition<?> definition = entityType.definition().orElse(null);
+        if (definition == null) return;
 
         String customIdentifier = null;
         var customEntityCache = CUSTOM_ENTITIES.get(session);
@@ -131,10 +134,13 @@ public final class JavaAddEntityTranslatorReplace extends PacketTranslator<Clien
             }
         } else if (packet.getType() == EntityType.AREA_EFFECT_CLOUD) {
             GeyserEntityType interactionType = GeyserEntityType.of(EntityType.INTERACTION);
-            EntityTypeDefinition<?> interactionDefinition = interactionType.definition();
-            var interactionContext = EntitySpawnContext.fromPacket(session, interactionDefinition, packet);
+            EntityTypeDefinition<?> interactionDefinition = interactionType.definition().orElse(null);
+            if (interactionDefinition == null) return;
+            EntityTypeDefinition<?> interactionTypeDefinition = interactionType.definition().orElse(null);
+            if (interactionTypeDefinition == null) return;
+            var interactionContext = EntitySpawnContext.fromPacket(session, interactionTypeDefinition, packet);
 
-            entity = interactionDefinition.factory().create(interactionContext);
+            entity = interactionTypeDefinition.factory().create(interactionContext);
         } else {
             if (definition.factory() == null) {
                 session.getGeyser().getLogger().warning("Entity definition has no factory for add entity packet " + packet);
