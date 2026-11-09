@@ -481,7 +481,10 @@ public class GeyserUtils implements Extension {
                     if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
                         if (ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN)) {
                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
-                            handleCustomPacket(session, customPacket);
+                            // on the session's event loop, like Geyser's own translators: run here on the network
+                            // thread it raced Geyser's entity updates (ArrayIndexOutOfBoundsException in
+                            // GeyserEntityDataManager.put) and the player was kicked
+                            session.ensureInEventLoop(() -> handleCustomPacket(session, customPacket));
                         }
                     }
                 }
