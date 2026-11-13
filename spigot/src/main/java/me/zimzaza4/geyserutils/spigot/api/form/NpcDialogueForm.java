@@ -12,13 +12,17 @@ import me.zimzaza4.geyserutils.spigot.GeyserUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -30,6 +34,12 @@ import java.util.function.Consumer;
 public class NpcDialogueForm {
 
     public static Map<String, NpcDialogueForm> FORMS = new HashMap<>();
+
+    private static final ScheduledExecutorService CLEANUP = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "GeyserUtils-NpcDialogueForm");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     String title;
     String dialogue;
@@ -57,19 +67,16 @@ public class NpcDialogueForm {
             FORMS.put(formId.toString(), this);
 
             p.sendPluginMessage(GeyserUtils.getInstance(), GeyserUtilsChannels.MAIN, GeyserUtils.getPacketManager().encodePacket(data));
-            new BukkitRunnable() {
-
-                @Override
-                public void run() {
-                    if (!FORMS.containsKey(formId.toString())) {
-                        this.cancel();
-                    }
-                    if (!p.isOnline()) {
-                        FORMS.remove(formId.toString());
-                    }
-
+            AtomicReference<ScheduledFuture<?>> task = new AtomicReference<>();
+            task.set(CLEANUP.scheduleAtFixedRate(() -> {
+                if (!p.isOnline()) {
+                    FORMS.remove(formId.toString());
                 }
-            }.runTaskTimerAsynchronously(GeyserUtils.getInstance(), 10, 10);
+                ScheduledFuture<?> future = task.get();
+                if (!FORMS.containsKey(formId.toString()) && future != null) {
+                    future.cancel(false);
+                }
+            }, 500, 500, TimeUnit.MILLISECONDS));
         }
     }
 }
